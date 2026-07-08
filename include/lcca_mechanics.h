@@ -1,0 +1,147 @@
+#ifndef LCCA_MECHANICS_H
+#define LCCA_MECHANICS_H
+
+#include "lcca_calendar.h"
+#include "lcca_numeric.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief The result of lcca_get_k_of_leap_month().
+ */
+typedef struct lcca_leap_month_result {
+    lcca_bool have_leap_month; /**< Whether a leap month exists */
+    lcca_i32 k;                /**< Lunation number (k) of the leap month
+                                    if exists */
+} lcca_leap_month_result;
+
+/**
+ * @brief   Calculates the true geometric longitude of the Sun for a given time
+ *          in degrees.
+ *
+ * See more: Chapter 24 "Solar Coordinates" of
+ * Astronomical Algorithms (Jean Meuus, 1991).
+ *
+ * @post This function has no side effects.
+ *
+ * @param[in] jd_td JD in Dynamic Time
+ *
+ * @returns The true geometric longitude of the Sun for the given time in
+ *          degrees.
+ */
+lcca_f64 lcca_get_sun_true_longitude(const lcca_f64 jd_td);
+
+/**
+ * @brief   Calculates the exact JD in Dynamic Time of the k-th New Moon.
+ *
+ * See more: Chapter 47 "Phases of the Moon" of
+ * Astronomical Algorithms (Jean Meuus, 1991).
+ *
+ * @post This function has no side effects.
+ *
+ * @param[in] k Lunation number (k=0 is roughly about AD 2000); it represents
+ *              a New Moon as an integer.
+ *
+ * @returns The exact JD in Dynamic Time of the k-th New Moon.
+ */
+lcca_f64 lcca_get_new_moon_jd_td(const lcca_i32 k);
+
+/**
+ * @brief   Approximates the lunation number (k) given the provided *decimal*
+ *          year.
+ *
+ * @pre The input Gregorian date is valid.
+ *
+ * @post    This function has no side effects, but it also inherits the side
+ *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *
+ * @param[in] gregorian The Gregorian date with time zone
+ *
+ * @param[in] time The time of the day
+ *
+ * @returns The approximated lunation number (k)
+ */
+lcca_f64 lcca_approximate_k(const lcca_gregorian_date gregorian,
+                            const lcca_time time);
+
+/**
+ * @brief Calculates the JD (TD) of the Winter Solstice of given Gregorian year
+ * and time zone.
+ *
+ * @post This function has no side effects.
+ *
+ * @param[in] year The Gregorian year
+ *
+ * @returns JD (TD) of the Winter Solstice
+ */
+lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year);
+
+/**
+ * @brief Calculates the Lunation number (k) of the New Moon that begins the
+ * 11th lunar month (Month 11).
+ *
+ * @pre Time zone is valid.
+ *
+ * @post    This function has no side effects, but it also inherits the side
+ *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *
+ * @param[in] year The Gregorian year
+ *
+ * @param[in] time_zone Time zone offset in hours
+ *
+ * @returns Lunation number (k) of the New Moon that begins Month 11
+ */
+lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
+
+/**
+ * @brief Calculates the Lunation number (k) of the first month without a
+ * Principal Solar Term in the lunar year from Month 11 to before the next
+ * Month 11.
+ *
+ * @pre
+ *      - k of the "current" year's Month 11 shall be smaller than k of the
+ * "next" year's Month 11.
+ *      - Time zone shall be valid.
+ *
+ * @post    This function has no side effects, but it also inherits the side
+ *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *
+ * @param[in] current_year_month_11_k k of the "current" year's Month 11
+ *
+ * @param[in] next_year_month_11_k k of the "next" year's Month 11
+ *
+ * @param[in] time_zone Time zone offset in hours
+ *
+ * @returns k of the first month without a Principal Solar Term in the lunar
+ * year from Month 11 to before the next Month 11.
+ */
+lcca_leap_month_result
+lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
+                         const lcca_i32 next_year_month_11_k,
+                         const lcca_f64 time_zone);
+
+/**
+ * @brief Calculate the JD (UT) of the midnight of the day which New Moon falls
+ * into.
+ *
+ * @pre Time zone shall be valid
+ *
+ * @post    This function has no side effects, but it also inherits the side
+ *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *
+ * @param[in] k Lunation number (k) of the New Moon in question
+ *
+ * @param[in] time_zone Time zone offset in hours
+ *
+ * @returns JD (UT) of the midnight of the day which New Moon falls into
+ */
+lcca_f64 lcca_get_new_moon_midnight_jd_ut(const lcca_i32 k,
+                                          const lcca_f64 time_zone);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* LCCA_MECHANICS_H */

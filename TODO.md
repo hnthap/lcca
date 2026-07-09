@@ -14,9 +14,6 @@
     - [x] lcca_get_delta_t_seconds_td
     - [ ] lcca_convert_gregorian_to_lunar
     - [ ] lcca_convert_lunar_to_gregorian
-  - [ ] lcca_language
-    - [ ] lcca_parse_language
-    - [ ] lcca_get_language_description
   - [ ] lcca_math
     - [ ] lcca_normalize_degrees
     - [ ] lcca_sin_degrees

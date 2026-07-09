@@ -348,13 +348,13 @@ function Get-LunarDateRepresentation {
         "Vietnamese" {
             $leap = if ($Lunar.Leap) { " nhuận" } else { "" }
             $monthSize = if ($Lunar.MonthSize -eq 29) { "(thiếu)" } else { "đủ" }
-            return $day + " " + $month + $leap + " " + $year + " " + $monthSize
+            return $day + " " + $month + $leap + " " + $monthSize + " " + $year
         }
         default {
             # Chinese
             $leap = if ($Lunar.Leap) { "閏" } else { "" }
             $monthSize = if ($Lunar.MonthSize -eq 29) { "（小）" } else { "（大）" }
-            return $year + $leap + $month + $day + $monthSize
+            return $year + $leap + $month + $monthSize + $day
         }
     }
 }

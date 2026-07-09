@@ -30,3 +30,5 @@
 - [ ] Write file-level documentations.
 - [ ] Double-check function-level documentations against actual implementation.
 - [ ] Write README and LICENSE.
+- [ ] Update `make help`.
+- [ ] Create a reusable template for a C project from this project.

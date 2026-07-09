@@ -100,10 +100,10 @@ lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
  * Principal Solar Term in the lunar year from Month 11 to before the next
  * Month 11.
  *
- * @pre
- *      - k of the "current" year's Month 11 shall be smaller than k of the
- * "next" year's Month 11.
- *      - Time zone shall be valid.
+ * @pre k of the "current" year's Month 11 shall be smaller than k of the "next"
+ * year's Month 11.
+ *
+ * @pre Time zone shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
  *          effects of lcca_c_assert (if any) in case of precondition violation.
@@ -126,7 +126,7 @@ lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
  * @brief Calculate the JD (UT) of the midnight of the day which New Moon falls
  * into.
  *
- * @pre Time zone shall be valid
+ * @pre Time zone shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
  *          effects of lcca_c_assert (if any) in case of precondition violation.

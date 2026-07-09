@@ -15,7 +15,9 @@ extern "C" {
  * using a fixed-parameter signature to comply with JPL Rule 20.
  *
  * @param[in] file The name of the source file where the assertion failed.
+ *
  * @param[in] line The line number where the assertion failed.
+ *
  * @param[in] expr The stringified expression that evaluated to false.
  *
  * @returns (Does not return)

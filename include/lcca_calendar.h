@@ -49,11 +49,12 @@ typedef struct lcca_time {
 /**
  * @brief Creates and initializes an lcca_time structure representing midnight.
  *
- * This function initializes a time of day object strictly to 00:00:00.000.
+ * This function initializes a time-of-day object strictly to 00:00:00.000.
  * It allocates no dynamic memory and returns the initialized structure by
  * value.
  *
  * @post The returned time evaluates as valid under lcca_is_valid_time_of_day.
+ *
  * @post This function has no side effects.
  *
  * @returns An lcca_time structure with hours, minutes, and seconds set to 0.
@@ -192,7 +193,7 @@ lcca_f64 lcca_get_delta_t_seconds_td(const lcca_f64 jd_td);
 /**
  * @brief Converts a date in the Gregorian calendar to lunar calendar.
  *
- * @pre The input Gregorian date shall be valid
+ * @pre The input Gregorian date shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
  *          effects of lcca_c_assert (if any) in case of precondition violation.
@@ -207,7 +208,7 @@ lcca_convert_gregorian_to_lunar(const lcca_gregorian_date gregorian);
 /**
  * @brief Converts a date in the lunar calendar to Gregorian calendar.
  *
- * @pre The input lunar date shall be valid
+ * @pre The input lunar date shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
  *          effects of lcca_c_assert (if any) in case of precondition violation.

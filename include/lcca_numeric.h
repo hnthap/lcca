@@ -34,12 +34,12 @@ typedef int32_t lcca_i32;
 typedef int64_t lcca_i64;
 
 /**
- * @brief 32-byte floating-point type.
+ * @brief 32-byte floating-point value type.
  */
 typedef float lcca_f32;
 
 /**
- * @brief 64-byte floating-point type.
+ * @brief 64-byte floating-point value type.
  */
 typedef double lcca_f64;
 

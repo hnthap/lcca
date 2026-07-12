@@ -74,37 +74,37 @@ extern "C" {
 #endif
 
 /**
- * @brief Boolean type.
+ * @brief Boolean value
  */
 typedef bool lcca_bool;
 
 /**
- * @brief 8-byte integer type.
+ * @brief Signed 8-bit integer.
  */
 typedef int8_t lcca_i8;
 
 /**
- * @brief 16-byte integer type.
+ * @brief Signed 16-bit integer.
  */
 typedef int16_t lcca_i16;
 
 /**
- * @brief 32-byte integer type.
+ * @brief Signed 32-bit integer.
  */
 typedef int32_t lcca_i32;
 
 /**
- * @brief 64-byte integer type.
+ * @brief Signed 64-bit integer.
  */
 typedef int64_t lcca_i64;
 
 /**
- * @brief 32-byte floating-point value type.
+ * @brief IEEE 754 single-precision floating-point value.
  */
 typedef float lcca_f32;
 
 /**
- * @brief 64-byte floating-point value type.
+ * @brief IEEE 754 double-precision floating-point value.
  */
 typedef double lcca_f64;
 

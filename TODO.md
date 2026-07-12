@@ -2,7 +2,7 @@
 
 - [x] Translate the [Lunar Calendar API](https://github.com/hnthap/lunar-calendar-api)'s astronomy module from TypeScript into C.
 - [ ] Write unit tests.
-  - [ ] lcca_calendar
+  - [x] lcca_calendar
     - [x] lcca_new_midnight_time
     - [x] lcca_is_valid_time_of_day
     - [x] lcca_is_valid_gregorian_date
@@ -12,14 +12,14 @@
     - [x] lcca_convert_jd_ut_to_time_of_day
     - [x] lcca_get_delta_t_seconds
     - [x] lcca_get_delta_t_seconds_td
-    - [ ] lcca_convert_gregorian_to_lunar
-    - [ ] lcca_convert_lunar_to_gregorian
-  - [ ] lcca_math
-    - [ ] lcca_normalize_degrees
-    - [ ] lcca_sin_degrees
+    - [x] lcca_convert_gregorian_to_lunar
+    - [x] lcca_convert_lunar_to_gregorian
+  - [x] lcca_math
+    - [x] lcca_normalize_degrees
+    - [x] lcca_sin_degrees
   - [ ] lcca_mechanics
-    - [ ] lcca_get_sun_true_longitude
-    - [ ] lcca_get_new_moon_jd_td
+    - [x] lcca_get_sun_true_longitude
+    - [x] lcca_get_new_moon_jd_td
     - [ ] lcca_approximate_k
     - [ ] lcca_get_winter_solstice_jd_td
     - [ ] lcca_get_k_of_month_11
@@ -27,8 +27,9 @@
     - [ ] lcca_get_new_moon_midnight_jd_ut
 - [ ] Update lcca_get_delta_t_seconds and lcca_get_delta_t_seconds_td with a more accurate implementation, then update the tests.
 - [x] Add Chinese and Vietnamese representations for PowerShell, write tests for them, and support module installation.
-- [ ] Write file-level documentations.
+- [x] Write file-level documentations.
 - [ ] Double-check function-level documentations against actual implementation.
 - [ ] Write README and LICENSE.
 - [ ] Update `make help`.
+- [ ] Resolve all remaining `@todo` in the unit tests.
 - [ ] Create a reusable template for a C project from this project.

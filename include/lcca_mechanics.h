@@ -108,7 +108,7 @@ extern "C" {
 typedef struct lcca_leap_month_result {
     lcca_bool have_leap_month; /**< Whether a leap month exists */
     lcca_i32 k;                /**< Lunation number (k) of the leap month
-                                    if exists */
+                                    if exists, undefined otherwise */
 } lcca_leap_month_result;
 
 /**

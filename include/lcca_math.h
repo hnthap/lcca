@@ -49,13 +49,14 @@
 #ifndef LCCA_MATH_H
 #define LCCA_MATH_H
 
-#include <math.h>
 #include "lcca_numeric.h"
+#include <math.h>
+
 
 #define LCCA_PI (3.1415926535898)
 
 #ifdef __cplusplus
-extern "C" { 
+extern "C" {
 #endif
 
 /**

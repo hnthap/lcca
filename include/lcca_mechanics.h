@@ -1,3 +1,97 @@
+/**
+ * @file lcca_mechanics.h
+ * @brief Astronomical mechanics and lunisolar calendar algorithms.
+ *
+ * This header provides the low-level astronomical algorithms that underpin the
+ * calendar conversion facilities of the LCCA library. Unlike the higher-level
+ * calendar API, which operates on Gregorian and lunar dates, this module
+ * exposes the underlying celestial mechanics used to derive those dates from
+ * first principles.
+ *
+ * The algorithms primarily implement the astronomical models described in
+ * Jean Meeus' Astronomical Algorithms, including calculations for
+ * solar coordinates, New Moon epochs, seasonal markers, and the relationship
+ * between lunar months and the solar year.
+ *
+ * Most applications should use the higher-level conversion routines provided
+ * by `lcca_calendar.h`. This header is intended primarily for library
+ * implementation, advanced users, and applications requiring direct access to
+ * intermediate astronomical quantities.
+ *
+ * ## Provided functionality
+ *
+ * - True geometric longitude of the Sun
+ * - Precise New Moon calculations
+ * - Lunation number estimation
+ * - Winter Solstice determination
+ * - Identification of Lunar Month 11
+ * - Leap-month detection
+ * - Conversion between lunation numbers and civil calendar boundaries
+ *
+ * ## Astronomical model
+ *
+ * The lunar calendar implemented by LCCA is fundamentally astronomical rather
+ * than tabular. Calendar months are defined by successive astronomical New
+ * Moons, while month numbering and leap-month determination are governed by
+ * the apparent motion of the Sun along the ecliptic.
+ *
+ * Several concepts recur throughout this API:
+ *
+ * - **Julian Day (JD)** serves as the continuous time representation used by
+ *   astronomical calculations.
+ * - **Dynamic Time (TD)** is used for ephemeris calculations because celestial
+ *   motion is modeled in a uniform time scale.
+ * - **Universal Time (UT)** is used when mapping astronomical events to civil
+ *   calendar dates.
+ * - **Lunation number (k)** identifies successive New Moons, with
+ *   `k = 0` corresponding approximately to the New Moon of
+ *   6 January 2000.
+ *
+ * ## Leap-month determination
+ *
+ * A lunisolar calendar must occasionally insert an additional lunar month to
+ * keep lunar months synchronized with the solar year.
+ *
+ * This module determines leap months according to the traditional East Asian
+ * calendrical rule: a leap month is the first lunar month between consecutive
+ * Month 11 boundaries that does not contain a Principal Solar Term. The helper
+ * structures and functions provided by this header expose the intermediate
+ * calculations required to identify that month.
+ *
+ * ## Intended usage
+ *
+ * Most public applications should not call these functions directly.
+ * Instead, they serve as the computational foundation for:
+ *
+ * - Gregorian ↔ lunar calendar conversion
+ * - Lunar calendar construction
+ * - Astronomical event calculations
+ * - Validation and testing of calendrical algorithms
+ *
+ * Direct use is appropriate when implementing alternative calendar systems,
+ * performing astronomical analysis, or inspecting intermediate results that
+ * are intentionally hidden by the higher-level calendar API.
+ *
+ * ## Thread safety
+ *
+ * All functions are deterministic numerical computations with no mutable
+ * global state. They are fully reentrant and thread-safe.
+ *
+ * ## Memory management
+ *
+ * This API performs no dynamic memory allocation. All structures are returned
+ * by value and require no explicit cleanup.
+ *
+ * ## References
+ *
+ * The astronomical algorithms implemented by this module are derived primarily
+ * from:
+ *
+ * Jean Meeus,
+ * Astronomical Algorithms,
+ * Willmann-Bell, 1991.
+ */
+
 #ifndef LCCA_MECHANICS_H
 #define LCCA_MECHANICS_H
 

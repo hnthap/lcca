@@ -1,3 +1,84 @@
+/**
+ * @file lcca_calendar.h
+ * @brief Calendar systems, Julian Day, time-of-day, and lunar calendar
+ *        conversion API.
+ *
+ * This header provides the public calendar facilities of the LCCA library.
+ * It defines fundamental date and time structures together with functions for
+ * validation, calendar arithmetic, Julian Day (JD) conversion, Delta T
+ * estimation, and bidirectional conversion between the Gregorian and the
+ * Vietnamese/Chinese lunisolar calendar.
+ *
+ * The API is designed as a stateless utility library:
+ * - All functions are pure computations and perform no dynamic memory
+ *   allocation.
+ * - Calendar objects are passed and returned by value.
+ * - All time zones are represented as decimal hour offsets from UTC
+ *   (for example, +07:00 is represented as 7.0).
+ *
+ * ## Supported functionality
+ *
+ * - Representation of:
+ *   - Gregorian calendar dates
+ *   - Lunar calendar dates
+ *   - Time of day with sub-second precision
+ * - Gregorian date validation
+ * - Gregorian month length calculation
+ * - Conversion between Gregorian calendar and Julian Day (UT)
+ * - Extraction of Gregorian date and time from Julian Day
+ * - Delta T (TD − UT) estimation
+ * - Conversion between Gregorian and lunisolar calendar dates
+ *
+ * ## Astronomical basis
+ *
+ * Julian Day conversion follows the astronomical algorithms described in:
+ *
+ * Jean Meeus,
+ * Astronomical Algorithms,
+ * Willmann-Bell, 1991.
+ *
+ * Delta T calculations are likewise based on the methods presented in the
+ * same reference.
+ *
+ * Lunar calendar conversion is performed using astronomical new moon and solar
+ * longitude calculations derived from the Julian Day representation.
+ *
+ * ## Calendar conventions
+ *
+ * Gregorian years use astronomical year numbering:
+ *
+ * - AD 1  -> 1
+ * - 1 BC  -> 0
+ * - 2 BC  -> -1
+ *
+ * Lunar dates contain additional metadata such as:
+ * - lunation number
+ * - leap-month flag
+ * - lunar month length
+ * - associated time zone
+ *
+ * ## Error handling
+ *
+ * Functions document their required preconditions individually.
+ *
+ * Unless otherwise specified:
+ * - violating a documented precondition results in undefined behavior from the
+ *   caller's perspective,
+ * - implementations may invoke `lcca_c_assert()`,
+ * - functions that explicitly document sentinel return values may return those
+ *   values after assertion handling.
+ *
+ * ## Thread safety
+ *
+ * All functions are reentrant and thread-safe provided that the underlying
+ * assertion implementation (if enabled) is thread-safe.
+ *
+ * ## Memory management
+ *
+ * This API performs no heap allocation. The caller owns all objects and no
+ * cleanup is required.
+ */
+
 #ifndef LCCA_LUNAR_CALENDAR_H
 #define LCCA_LUNAR_CALENDAR_H
 

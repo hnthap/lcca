@@ -369,7 +369,7 @@ static lcca_bool test_lcca_get_gregorian_month_size_nominal(void) {
  * * Since lcca_c_assert returns false and delegates logging without aborting,
  * a robust implementation must return a safe fail-state value (like -1).
  */
-static lcca_bool test_lcca_get_gregorian_month_size_off_nominal(void) {
+static lcca_bool test_lcca_get_gregorian_month_size_violation(void) {
     lcca_bool passed = true;
     lcca_gregorian_date date_test;
     lcca_i8 size;
@@ -567,7 +567,6 @@ static lcca_bool test_lcca_convert_jd_ut_to_time_of_day_nominal(void) {
         passed = false;
     }
     if (!lcca_c_assert(IS_EQUAL_F64(time_result.seconds, 34.0))) {
-        printf("%f", time_result.seconds);
         passed = false;
     }
 
@@ -613,8 +612,6 @@ static lcca_bool test_lcca_get_delta_t_seconds_nominal(void) {
     lcca_f64 delta_t;
 
     /* Benchmark for J2000.0 (JD 2451545.0) using the accepted polynomial */
-    /* Ensure the expected value matches the specific polynomial in your source
-     */
     delta_t = lcca_get_delta_t_seconds(2451545.0);
 
     if (!lcca_c_assert(IS_EQUAL_DELTA_T(delta_t, 102.32))) {
@@ -643,6 +640,262 @@ static lcca_bool test_lcca_get_delta_t_seconds_td_nominal(void) {
     return passed;
 }
 
+/**
+ * @brief Tests lcca_convert_gregorian_to_lunar with valid non-leap Gregorian
+ * dates. Reference values are confirmed outputs of the TypeScript
+ * implementation.
+ */
+static lcca_bool test_lcca_convert_gregorian_to_lunar_nominal(void) {
+    lcca_bool passed = true;
+    lcca_gregorian_date date_test;
+    lcca_lunar_date result;
+
+    /* Test Case 1: July 19th, 2024, +07:00 */
+    /* Expected: year 2024, month 6 (not leap), day 14, monthSize 29 */
+    date_test.time_zone = 7.0;
+    date_test.year = 2024;
+    date_test.month = 7;
+    date_test.day = 19;
+    result = lcca_convert_gregorian_to_lunar(date_test);
+    if (!lcca_c_assert(result.year == 2024)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 6)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month_size == 29)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 14)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.leap == false)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    /* Test Case 2: December 31st, 2010, +07:00 */
+    /* Expected: year 2010, month 11 (not leap), day 26, monthSize 29 */
+    /* Exercises a Gregorian year-end date mapping to a mid-lunar-year month */
+    date_test.time_zone = 7.0;
+    date_test.year = 2010;
+    date_test.month = 12;
+    date_test.day = 31;
+    result = lcca_convert_gregorian_to_lunar(date_test);
+    if (!lcca_c_assert(result.year == 2010)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 11)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month_size == 29)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 26)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.leap == false)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests lcca_convert_gregorian_to_lunar specifically for leap month
+ * detection. Both dates fall in the same Gregorian year (2025), which contains
+ * a leap month 6. The first date falls within that leap month; the second
+ * does not. This verifies that the leap flag is per-month, not per-year.
+ */
+static lcca_bool test_lcca_convert_gregorian_to_lunar_leap_month(void) {
+    lcca_bool passed = true;
+    lcca_gregorian_date date_test;
+    lcca_lunar_date result;
+
+    /* Test Case 1: August 11th, 2025, +07:00 */
+    /* Expected: year 2025, month 6 (leap), day 18, monthSize 29 */
+    date_test.time_zone = 7.0;
+    date_test.year = 2025;
+    date_test.month = 8;
+    date_test.day = 11;
+    result = lcca_convert_gregorian_to_lunar(date_test);
+    if (!lcca_c_assert(result.year == 2025)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 6)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month_size == 29)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 18)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.leap == true)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    /* Test Case 2: August 31st, 2025, +08:00 */
+    /* Expected: year 2025, month 7 (not leap), day 9, monthSize 30 */
+    /* Same Gregorian year as above; confirms leap is per-month, not per-year */
+    /* Also the only case across all g2l tests with monthSize 30 */
+    date_test.time_zone = 8.0;
+    date_test.year = 2025;
+    date_test.month = 8;
+    date_test.day = 31;
+    result = lcca_convert_gregorian_to_lunar(date_test);
+    if (!lcca_c_assert(result.year == 2025)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 7)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month_size == 30)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 9)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.leap == false)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 8.0))) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests lcca_convert_lunar_to_gregorian with non-leap inputs using a
+ * roundtrip approach.
+ *
+ * Direct construction of lcca_lunar_date is not feasible here because the k
+ * field (lunation number) must be valid and is not independently derivable
+ * by a caller. Roundtrip testing (g2l then l2g) provides guaranteed-valid
+ * input structs and verifies the inverse relationship. Oracle values correspond
+ * to those used in test_lcca_convert_gregorian_to_lunar_nominal.
+ */
+static lcca_bool test_lcca_convert_lunar_to_gregorian_nominal(void) {
+    lcca_bool passed = true;
+    lcca_gregorian_date gregorian_input;
+    lcca_lunar_date lunar;
+    lcca_gregorian_date result;
+
+    /* Test Case 1: July 19th, 2024, +07:00 */
+    gregorian_input.time_zone = 7.0;
+    gregorian_input.year = 2024;
+    gregorian_input.month = 7;
+    gregorian_input.day = 19;
+    lunar = lcca_convert_gregorian_to_lunar(gregorian_input);
+    result = lcca_convert_lunar_to_gregorian(lunar);
+    if (!lcca_c_assert(result.year == 2024)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 7)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 19)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    /* Test Case 2: December 31st, 2010, +07:00 */
+    gregorian_input.time_zone = 7.0;
+    gregorian_input.year = 2010;
+    gregorian_input.month = 12;
+    gregorian_input.day = 31;
+    lunar = lcca_convert_gregorian_to_lunar(gregorian_input);
+    result = lcca_convert_lunar_to_gregorian(lunar);
+    if (!lcca_c_assert(result.year == 2010)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 12)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 31)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests lcca_convert_lunar_to_gregorian for leap month inputs using
+ * a roundtrip approach.
+ *
+ * Both cases use Gregorian dates from 2025, which contains a leap month 6.
+ * The first input falls within that leap month (leap=true); the second does
+ * not (leap=false, month 7). This mirrors the structure of
+ * test_lcca_convert_gregorian_to_lunar_leap_month and verifies that l2g
+ * correctly distinguishes a leap month 6 from the following month 7 in the
+ * same lunar year.
+ */
+static lcca_bool test_lcca_convert_lunar_to_gregorian_leap_month(void) {
+    lcca_bool passed = true;
+    lcca_gregorian_date gregorian_input;
+    lcca_lunar_date lunar;
+    lcca_gregorian_date result;
+
+    /* Test Case 1: August 11th, 2025, +07:00 */
+    /* Lunar intermediate: year 2025, month 6 (leap), day 18 */
+    gregorian_input.time_zone = 7.0;
+    gregorian_input.year = 2025;
+    gregorian_input.month = 8;
+    gregorian_input.day = 11;
+    lunar = lcca_convert_gregorian_to_lunar(gregorian_input);
+    result = lcca_convert_lunar_to_gregorian(lunar);
+    if (!lcca_c_assert(result.year == 2025)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 8)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 11)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 7.0))) {
+        passed = false;
+    }
+
+    /* Test Case 2: August 31st, 2025, +08:00 */
+    /* Lunar intermediate: year 2025, month 7 (not leap), day 9 */
+    /* Same year as above; confirms l2g distinguishes leap from non-leap */
+    gregorian_input.time_zone = 8.0;
+    gregorian_input.year = 2025;
+    gregorian_input.month = 8;
+    gregorian_input.day = 31;
+    lunar = lcca_convert_gregorian_to_lunar(gregorian_input);
+    result = lcca_convert_lunar_to_gregorian(lunar);
+    if (!lcca_c_assert(result.year == 2025)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.month == 8)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result.day == 31)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(IS_EQUAL_F64(result.time_zone, 8.0))) {
+        passed = false;
+    }
+
+    return passed;
+}
+
 int main(void) {
     lcca_bool tests_passed = true;
 
@@ -662,7 +915,7 @@ int main(void) {
 
     /* Execute lcca_get_gregorian_month_size test suite */
     RUN_TEST(test_lcca_get_gregorian_month_size_nominal);
-    RUN_TEST(test_lcca_get_gregorian_month_size_off_nominal);
+    RUN_TEST(test_lcca_get_gregorian_month_size_violation);
 
     /* Execute lcca_convert_gregorian_to_jd_ut test suite */
     RUN_TEST(test_lcca_convert_gregorian_to_jd_ut_nominal);
@@ -678,6 +931,14 @@ int main(void) {
 
     /* Execute lcca_get_delta_t_seconds_td test suite */
     RUN_TEST(test_lcca_get_delta_t_seconds_td_nominal);
+
+    /* Execute lcca_convert_gregorian_to_lunar test suite */
+    RUN_TEST(test_lcca_convert_gregorian_to_lunar_nominal);
+    RUN_TEST(test_lcca_convert_gregorian_to_lunar_leap_month);
+
+    /* Execute lcca_convert_lunar_to_gregorian test suite */
+    RUN_TEST(test_lcca_convert_lunar_to_gregorian_nominal);
+    RUN_TEST(test_lcca_convert_lunar_to_gregorian_leap_month);
 
     printf("=== Test Suite Finished ===\n");
 

@@ -227,18 +227,6 @@ lcca_convert_gregorian_to_lunar(const lcca_gregorian_date gregorian) {
 
 lcca_gregorian_date
 lcca_convert_lunar_to_gregorian(const lcca_lunar_date lunar) {
-    /**
-     * The only sane way to validate a lunar date as we know is to convert it to
-     * Gregorian, then convert it back to lunar, and then compare the new lunar
-     * date with the original, where the difference indicates invalidity.
-     *
-     * That would introduce an infinite loop (because the first step is actually
-     * this function), and "assertions shall be used to perform basic sanity
-     * checks throughout the code," whereas this validation is not basic.
-     * Therefore, we will skip this assertion.
-     *
-     * Validation is only performed by applying basic sanity bounds.
-     */
     (void)lcca_c_assert(
         (((lunar.month >= 1) && (lunar.month <= 12)) &&
          ((lunar.month_size == 29) || (lunar.month_size == 30))) &&

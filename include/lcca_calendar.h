@@ -310,6 +310,15 @@ lcca_convert_gregorian_to_lunar(const lcca_gregorian_date gregorian);
  * @param[in] lunar The lunar date
  *
  * @returns The equivalent Gregorian date
+ *
+ * @note The only sane way to validate a lunar date as we know is to convert it
+ * to Gregorian, then convert it back to lunar, and then compare the new lunar
+ * date with the original, where the difference indicates invalidity. That would
+ * introduce an infinite loop (because the first step is actually this
+ * function), and "assertions shall be used to perform basic sanity checks
+ * throughout the code," whereas this validation is not basic. Therefore, we
+ * will skip this assertion. Lunar date validation is only performed by applying
+ * basic sanity bounds.
  */
 lcca_gregorian_date
 lcca_convert_lunar_to_gregorian(const lcca_lunar_date lunar);

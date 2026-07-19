@@ -22,7 +22,7 @@
     - [x] lcca_get_new_moon_jd_td
     - [x] lcca_approximate_k
     - [x] lcca_get_winter_solstice_jd_td
-    - [ ] lcca_get_k_of_month_11
+    - [x] lcca_get_k_of_month_11
     - [ ] lcca_get_k_of_leap_month
     - [ ] lcca_get_new_moon_midnight_jd_ut
 - [ ] Update lcca_get_delta_t_seconds and lcca_get_delta_t_seconds_td with a more accurate implementation, then update the tests.

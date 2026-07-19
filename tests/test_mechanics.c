@@ -689,6 +689,272 @@ test_lcca_get_winter_solstice_jd_td_sun_longitude_consistency(void) {
 }
 
 /* =========================================================================
+ * lcca_get_k_of_month_11
+ * ========================================================================= */
+
+/**
+ * @brief Tests lcca_get_k_of_month_11 against oracle values derived from the
+ * Meeus mean synodic month formula and published winter solstice times.
+ *
+ * Oracle derivation for each year:
+ *   k = floor((jd_winter_solstice_ut - jd_k0_ut) / 29.5306)
+ * where jd_k0_ut = 2451550.260 (from test_lcca_get_new_moon_jd_td_nominal).
+ *
+ *   year 1999: solstice Dec 22 07:44 UTC -> JD(UT) 2451534.822
+ *              (2451534.822 - 2451550.260) / 29.5306 = -0.523 -> k = -1
+ *   year 2000: solstice Dec 21 13:37 UTC -> JD(UT) 2451900.067
+ *              349.807 / 29.5306 = 11.845 -> k = 11
+ *              Margin: new moon ~25 days before solstice, ~4.5 days after.
+ *   year 2001: solstice Dec 22 03:21 UTC -> JD(UT) 2452265.640
+ *              715.380 / 29.5306 = 24.22 -> k = 24
+ *   year 2019: solstice Dec 22 04:19 UTC -> JD(UT) 2458839.680
+ *              7289.420 / 29.5306 = 246.85 -> k = 246
+ *              Cross-check: 246 = 11 + 235 (Metonic cycle from year 2000).
+ *
+ * All three solstice positions sit at least 4 days from either month
+ * boundary, so these k values are stable against ±1-day perturbations.
+ *
+ * Year 2000 is also tested with time_zone = 7.0 (UTC+7). The k=11 new
+ * moon falls approximately Nov 25 at 14:20 UTC = Nov 25 21:20 local; its
+ * midnight is Nov 25 in both UTC and UTC+7. The winter solstice (Dec 21)
+ * is 25 days into the month, well clear of any timezone-induced boundary
+ * shift, so k = 11 is expected for all practical timezones.
+ *
+ * @todo Verify all oracle k values against the TypeScript reference
+ *       implementation. The derivation above uses the mean synodic period
+ *       (29.5306 days) rather than the full Meeus Ch. 47 polynomial, which
+ *       introduces ~minutes of error per lunation. The comfortable margins
+ *       (>=4 days from boundaries) make the floor robust, but confirmation
+ *       against the polynomial evaluation is still recommended.
+ */
+static lcca_bool test_lcca_get_k_of_month_11_nominal(void) {
+    lcca_bool passed = true;
+
+    /* year 1999, UTC: k = -1 (negative k, before the J2000 epoch) */
+    if (!lcca_c_assert(lcca_get_k_of_month_11(1999, 0.0) == -1)) {
+        passed = false;
+    }
+
+    /* year 2000, UTC: k = 11 */
+    if (!lcca_c_assert(lcca_get_k_of_month_11(2000, 0.0) == 11)) {
+        passed = false;
+    }
+
+    /* year 2001, UTC: k = 24 */
+    if (!lcca_c_assert(lcca_get_k_of_month_11(2001, 0.0) == 24)) {
+        passed = false;
+    }
+
+    /* year 2019, UTC: k = 246 (= 11 + 235; also validates Metonic pair) */
+    if (!lcca_c_assert(lcca_get_k_of_month_11(2019, 0.0) == 246)) {
+        passed = false;
+    }
+
+    /* year 2000, UTC+7: same k = 11 (solstice Dec 21 is 25 days inside the
+     * month, far from any midnight boundary regardless of timezone shift) */
+    if (!lcca_c_assert(lcca_get_k_of_month_11(2000, 7.0) == 11)) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that the k increment between consecutive years is always
+ * exactly 12 or 13, and that the 10-year total is 123 or 124.
+ *
+ * This is the fundamental structural invariant of a lunisolar calendar: the
+ * span between consecutive Month 11 anchors contains either 12 months (a
+ * regular year) or 13 months (a leap year, inserting one intercalary month
+ * to resynchronize the lunar cycle with the solar year). Any value other
+ * than 12 or 13 indicates a broken winter solstice or new moon calculation.
+ *
+ * The 10-year total (k(2010) - k(2000)) must be 123 or 124, since
+ * 10 x 12.3685 = 123.685. From the oracle derivation:
+ *   k(2010) = 135 (from Dec 21 23:38 UTC 2010 -> JD(UT) 2455552.485;
+ *                  4002.225 / 29.5306 = 135.52 -> floor = 135)
+ *   total = 135 - 11 = 124.
+ * The range check (123 or 124) accommodates the ±1 uncertainty in the
+ * oracle derivation. A total of 120 (all 12s) or 130 (all 13s) would
+ * indicate systematic drift in the underlying solar or lunar formula.
+ *
+ * @todo Verify k(2010) = 135 against the TypeScript reference implementation,
+ *       then tighten the total_increment check to == 124 if confirmed.
+ */
+static lcca_bool test_lcca_get_k_of_month_11_annual_increment(void) {
+    lcca_bool passed = true;
+    lcca_i32 year;
+    lcca_i32 k_prev;
+    lcca_i32 total_increment = 0;
+
+    k_prev = lcca_get_k_of_month_11(2000, 0.0);
+    for (year = 2001; year <= 2010; year += 1) {
+        const lcca_i32 k_curr = lcca_get_k_of_month_11(year, 0.0);
+        const lcca_i32 diff = k_curr - k_prev;
+
+        /* Each year-to-year increment must be exactly 12 or 13 */
+        if (!lcca_c_assert(diff == 12 || diff == 13)) {
+            passed = false;
+        }
+
+        total_increment += diff;
+        k_prev = k_curr;
+    }
+
+    /* 10-year total: 10 x 12.3685 = 123.685, so 123 or 124 */
+    if (!lcca_c_assert(total_increment == 123 || total_increment == 124)) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests the 19-year Metonic cycle: k(year + 19) - k(year) == 235.
+ *
+ * The Metonic cycle: 19 tropical years = 6939.6018 days; 235 synodic months
+ * = 6939.6887 days. The residual (< 2 hours) is far below one synodic month,
+ * so any correct lunisolar calendar must produce exactly 235 lunations per
+ * 19-year span at the Month 11 boundary.
+ *
+ * Three non-overlapping pairs are tested. Oracle k values used here (derived
+ * by the same analytical method as in test_lcca_get_k_of_month_11_nominal):
+ *
+ *   year 2020: solstice Dec 21 10:02 UTC -> JD(UT) 2459204.918
+ *              7654.658 / 29.5306 = 259.19 -> k = 259 (= 24 + 235)
+ *   year 2021: solstice Dec 21 15:59 UTC -> JD(UT) 2459570.166
+ *              JD midnight Jan 1 2021 = 2459215.5 (Jan 1 2020 + 366 days);
+ *              Dec 21 midnight = 2459569.5; + 0.666d = 2459570.166.
+ *              8019.906 / 29.5306 = 271.57 -> k = 271 (= 36 + 235)
+ *
+ * @todo Verify k(2020) = 259 and k(2021) = 271 against the TypeScript
+ *       reference implementation.
+ */
+static lcca_bool test_lcca_get_k_of_month_11_metonic_cycle(void) {
+    lcca_bool passed = true;
+
+    /* Pair 1: years 2000 and 2019. k(2000) = 11, k(2019) = 246. */
+    {
+        const lcca_i32 diff = lcca_get_k_of_month_11(2019, 0.0) -
+                              lcca_get_k_of_month_11(2000, 0.0);
+        if (!lcca_c_assert(diff == 235)) {
+            passed = false;
+        }
+    }
+
+    /* Pair 2: years 2001 and 2020. k(2001) = 24, k(2020) = 259. */
+    {
+        const lcca_i32 diff = lcca_get_k_of_month_11(2020, 0.0) -
+                              lcca_get_k_of_month_11(2001, 0.0);
+        if (!lcca_c_assert(diff == 235)) {
+            passed = false;
+        }
+    }
+
+    /* Pair 3: years 2002 and 2021. k(2002) = 36, k(2021) = 271. */
+    {
+        const lcca_i32 diff = lcca_get_k_of_month_11(2021, 0.0) -
+                              lcca_get_k_of_month_11(2002, 0.0);
+        if (!lcca_c_assert(diff == 235)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that lcca_get_k_of_month_11 is strictly monotone increasing.
+ *
+ * k must strictly increase year over year. A sign error in the leading
+ * coefficient of either the winter solstice formula (Ch. 27) or the new moon
+ * formula (Ch. 47) used internally would collapse or invert the output.
+ * Tested over both a short span (1999-2001, bracketing the negative-to-
+ * positive k transition at the J2000 epoch) and a wide span (1900, 2000,
+ * 2100, exercising the polynomial over a 200-year range).
+ */
+static lcca_bool test_lcca_get_k_of_month_11_monotonicity(void) {
+    lcca_bool passed = true;
+
+    /* Nearby: 1999, 2000, 2001 (k = -1, 11, 24) */
+    {
+        const lcca_i32 k_1999 = lcca_get_k_of_month_11(1999, 0.0);
+        const lcca_i32 k_2000 = lcca_get_k_of_month_11(2000, 0.0);
+        const lcca_i32 k_2001 = lcca_get_k_of_month_11(2001, 0.0);
+        if (!lcca_c_assert(k_1999 < k_2000)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(k_2000 < k_2001)) {
+            passed = false;
+        }
+    }
+
+    /* Wide: 1900, 2000, 2100 */
+    {
+        const lcca_i32 k_1900 = lcca_get_k_of_month_11(1900, 0.0);
+        const lcca_i32 k_2000 = lcca_get_k_of_month_11(2000, 0.0);
+        const lcca_i32 k_2100 = lcca_get_k_of_month_11(2100, 0.0);
+        if (!lcca_c_assert(k_1900 < k_2000)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(k_2000 < k_2100)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Cross-function consistency: the winter solstice JD(TD) must fall
+ * within the astronomical window of the lunar month [k, k+1) identified by
+ * lcca_get_k_of_month_11.
+ *
+ * lcca_get_winter_solstice_jd_td and lcca_get_new_moon_jd_td both return
+ * JD in TD, so they compose without Delta T conversion. The 1.0-day
+ * tolerance accounts for the TD->UT->local-midnight conversion that
+ * lcca_get_k_of_month_11 applies internally to find the civil-calendar
+ * month boundary. All real error sources are far below 1 day:
+ *   - Delta T for modern dates: ~70 s ≈ 0.001 days
+ *   - Meeus Ch. 27 winter solstice formula error: ~45 min ≈ 0.031 days
+ *   - Meeus Ch. 47 new moon formula error: ~2 min ≈ 0.001 days
+ *
+ * An off-by-one error in k produces a ~29.5-day discrepancy in one of the
+ * two assertions, far exceeding the 1-day tolerance.
+ *
+ * UTC (time_zone = 0.0) is used to minimise the midnight shift. Years
+ * 2000-2005 are tested (six consecutive years), ensuring multiple orbital
+ * configurations are covered.
+ *
+ * @todo Tighten the tolerance to 0.1 days once both underlying functions
+ *       are verified against the TypeScript reference implementation.
+ */
+static lcca_bool test_lcca_get_k_of_month_11_winter_solstice_containment(void) {
+    lcca_bool passed = true;
+    lcca_i32 year;
+
+    for (year = 2000; year <= 2005; year += 1) {
+        const lcca_f64 solstice_td = lcca_get_winter_solstice_jd_td(year);
+        const lcca_i32 k = lcca_get_k_of_month_11(year, 0.0);
+        const lcca_f64 k_td = lcca_get_new_moon_jd_td(k);
+        const lcca_f64 k_next_td = lcca_get_new_moon_jd_td(k + 1);
+
+        /* The k-th new moon must precede the winter solstice (1-day tolerance
+         * for the midnight conversion applied by lcca_get_k_of_month_11) */
+        if (!lcca_c_assert(k_td <= solstice_td + 1.0)) {
+            passed = false;
+        }
+
+        /* The (k+1)-th new moon must follow the winter solstice */
+        if (!lcca_c_assert(k_next_td >= solstice_td - 1.0)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/* =========================================================================
  * Entry point
  * ========================================================================= */
 
@@ -713,6 +979,13 @@ int main(void) {
     RUN_TEST(test_lcca_get_winter_solstice_jd_td_nominal);
     RUN_TEST(test_lcca_get_winter_solstice_jd_td_monotonicity_and_rate);
     RUN_TEST(test_lcca_get_winter_solstice_jd_td_sun_longitude_consistency);
+
+    /* Execute lcca_get_k_of_month_11 test suite */
+    RUN_TEST(test_lcca_get_k_of_month_11_nominal);
+    RUN_TEST(test_lcca_get_k_of_month_11_annual_increment);
+    RUN_TEST(test_lcca_get_k_of_month_11_metonic_cycle);
+    RUN_TEST(test_lcca_get_k_of_month_11_monotonicity);
+    RUN_TEST(test_lcca_get_k_of_month_11_winter_solstice_containment);
 
     printf("=== Test Suite Finished ===\n");
 

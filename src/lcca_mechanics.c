@@ -117,22 +117,26 @@ lcca_f64 lcca_get_new_moon_jd_td(const lcca_i32 k) {
 
 lcca_f64 lcca_approximate_k(const lcca_gregorian_date gregorian,
                             const lcca_time time) {
+    (void)lcca_c_assert(lcca_is_valid_gregorian_date(gregorian));
+    (void)lcca_c_assert(lcca_is_valid_time_of_day(time));
+    {
     const lcca_i32 K =
         ((gregorian.year % 400 == 0) ||
          ((gregorian.year % 4 == 0) && (gregorian.year % 100 != 0)))
             ? 1
             : 2;
     const lcca_i32 day_of_year =
-        ((((275 * (lcca_i32)gregorian.month) / 9)       /** Integer division */
-          - K * (((lcca_i32)gregorian.month + 9) / 12)) /** Integer division */
+            ((((275 * (lcca_i32)gregorian.month) / 9) /** Integer division */
+              - K * (((lcca_i32)gregorian.month + 9) /
+                     12)) /** Integer division */
          + (gregorian.day - 30));
-    const lcca_f64 F = ((time.hours - gregorian.time_zone) +
+        const lcca_f64 F =
+            ((time.hours - gregorian.time_zone) +
                         ((time.minutes + (time.seconds / 60.0)) / 60.0) / 24.0);
-    (void)lcca_c_assert(lcca_is_valid_gregorian_date(gregorian));
-    (void)lcca_c_assert(lcca_is_valid_time_of_day(time));
     return ((((day_of_year - 1) + F) / ((K == 1) ? 366 : 365)) +
             (gregorian.year - 2000)) *
            12.3685;
+    }
 }
 
 lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year) {

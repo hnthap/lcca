@@ -148,8 +148,8 @@ lcca_f64 lcca_get_new_moon_jd_td(const lcca_i32 k);
  *
  * @pre The input Gregorian date is valid.
  *
- * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @post This function has no side effects, but it also inherits the side
+ * effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] gregorian The Gregorian date with time zone
  *
@@ -179,8 +179,8 @@ lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year);
  * @pre Time zone shall be valid. Regarding timezone offset validation, consult
  * the file-level documentation of `lcca_calendar.h`.
  *
- * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @post This function has no side effects, but it also inherits the side
+ * effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] year The Gregorian year
  *
@@ -201,8 +201,8 @@ lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
  * @pre Time zone shall be valid. Regarding timezone offset validation, consult
  * the file-level documentation of `lcca_calendar.h`.
  *
- * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @post This function has no side effects, but it also inherits the side
+ * effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] current_year_month_11_k k of the "current" year's Month 11
  *
@@ -225,8 +225,8 @@ lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
  * @pre Time zone shall be valid. Regarding timezone offset validation, consult
  * the file-level documentation of `lcca_calendar.h`.
  *
- * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @post This function has no side effects, but it also inherits the side
+ * effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] k Lunation number (k) of the New Moon in question
  *

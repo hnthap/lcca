@@ -64,7 +64,13 @@ lcca_f64 lcca_convert_gregorian_to_jd_ut(const lcca_gregorian_date gregorian,
         m = m + 12;
     }
     A = y / 100;
+    if ((y < 0) && (y % 100 != 0)) { /* Handling negative years */
+        A -= 1;
+    }
     B = 2 - A + (A / 4);
+    if ((A < 0) && (A % 4 != 0)) { /* Handling negative A */
+        B -= 1;
+    }
 
     return ((floor(365.25 * (y + 4716)) + floor(30.6001 * (m + 1))) +
             ((d + B) - 1524.5));

@@ -55,6 +55,22 @@
  * values. */
 #define ROUND_K(val) ((lcca_i32)floor((val) + 0.5))
 
+/* Epsilon for winter solstice JD comparisons, in days.
+ * The Meeus Chapter 27 seasonal-point formula is accurate to approximately
+ * 45 minutes (0.031 days) against high-precision ephemerides. 0.05 days
+ * (~72 minutes) absorbs formula error, Delta T (~0.001 days for modern
+ * dates, negligible relative to epsilon), and published UTC oracle precision
+ * (~1 minute). A wrong polynomial coefficient produces hour-scale or larger
+ * errors, far exceeding this threshold. Once oracle values are verified
+ * against the TypeScript reference implementation, tighten to ~1e-6 days
+ * (floating-point agreement between two implementations of the same formula).
+ */
+#define TEST_WINTER_SOLSTICE_JD_EPSILON (0.05)
+
+#define IS_EQUAL_WINTER_SOLSTICE_JD(val, expected)                             \
+    ((((val) - (expected)) < TEST_WINTER_SOLSTICE_JD_EPSILON) &&               \
+     (((expected) - (val)) < TEST_WINTER_SOLSTICE_JD_EPSILON))
+
 /* =========================================================================
  * lcca_get_sun_true_longitude
  * ========================================================================= */
@@ -468,6 +484,211 @@ static lcca_bool test_lcca_approximate_k_monotonicity_and_rate(void) {
 }
 
 /* =========================================================================
+ * lcca_get_winter_solstice_jd_td
+ * ========================================================================= */
+
+/**
+ * @brief Tests lcca_get_winter_solstice_jd_td against oracle values for
+ * AD 2000 and AD 2020 derived from published UTC solstice times.
+ *
+ * Oracles (UTC times converted to JD(UT); function returns JD(TD)):
+ *
+ *   year 2000: Dec 21, 13:37 UTC
+ *              JD(UT) = 2451899.5 + (13 + 37/60) / 24
+ *                     = 2451899.5 + 0.5674 = 2451900.067
+ *
+ *   year 2020: Dec 21, 10:02 UTC
+ *              JD(UT) = 2459204.5 + (10 + 2/60) / 24
+ *                     = 2459204.5 + 0.4181 = 2459204.918
+ *
+ * JD arithmetic for year 2000:
+ *   Jan 1.0, 2000 midnight = JD 2451544.5 (J2000.0 − 0.5 days)
+ *   Dec 21 = day 356 in 2000 (leap year):
+ *     31+29+31+30+31+30+31+31+30+31+30+21 = 356
+ *   Dec 21.0, 2000 midnight = JD 2451544.5 + 355 = 2451899.5
+ *
+ * JD arithmetic for year 2020:
+ *   Leap years 2000-2019: 2000, 2004, 2008, 2012, 2016 = 5 years
+ *   Jan 1.0, 2020 midnight = JD 2451544.5 + (5×366 + 15×365)
+ *                          = JD 2451544.5 + 7305 = 2458849.5
+ *   Dec 21 = day 356 in 2020 (leap year, same structure as 2000)
+ *   Dec 21.0, 2020 midnight = JD 2458849.5 + 355 = 2459204.5
+ *
+ * The function returns JD(TD). Delta T in 2000 ≈ 63.8 s ≈ 0.000739 days;
+ * in 2020 ≈ 69.9 s ≈ 0.000809 days. Both are far below
+ * TEST_WINTER_SOLSTICE_JD_EPSILON and are not corrected in the oracles.
+ *
+ * @todo Verify both UTC oracle times against the TypeScript reference
+ *       implementation or JPL Horizons (Sun ecliptic longitude = 270°
+ *       crossing). Tighten epsilon to ~1e-6 once confirmed.
+ *
+ * @todo Add oracle cases for pre-2000 years (e.g. 1900, 1950) after
+ *       sourcing verified historical solstice times, to exercise the Meeus
+ *       Chapter 27 polynomial outside its well-tested modern range.
+ */
+static lcca_bool test_lcca_get_winter_solstice_jd_td_nominal(void) {
+    lcca_bool passed = true;
+    lcca_f64 result;
+
+    /* Year 2000: Dec 21, 13:37 UTC -> JD(UT) = 2451900.067 */
+    result = lcca_get_winter_solstice_jd_td(2000);
+    if (!lcca_c_assert(IS_EQUAL_WINTER_SOLSTICE_JD(result, 2451900.067))) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result > 0.0)) {
+        passed = false;
+    }
+
+    /* Year 2020: Dec 21, 10:02 UTC -> JD(UT) = 2459204.918 */
+    result = lcca_get_winter_solstice_jd_td(2020);
+    if (!lcca_c_assert(IS_EQUAL_WINTER_SOLSTICE_JD(result, 2459204.918))) {
+        passed = false;
+    }
+    if (!lcca_c_assert(result > 0.0)) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests monotonicity and annual rate of lcca_get_winter_solstice_jd_td.
+ *
+ * Five invariants verified:
+ *
+ * 1. Monotonicity (nearby): consecutive years 1999, 2000, 2001 are strictly
+ *    increasing. A sign error on the leading year coefficient would invert
+ *    the order or collapse all results to a constant.
+ *
+ * 2. Monotonicity (wide): years 1900, 2000, 2100 are strictly increasing.
+ *    Exercises the polynomial's behavior across a 200-year span within the
+ *    Meeus Chapter 27 intended domain (1000-3000).
+ *
+ * 3. Rate (1 year): jd(2001) - jd(2000) in [365.0, 366.0] days. The mean
+ *    tropical year is 365.2422 days; year-to-year variation due to orbital
+ *    perturbations is typically under 0.5 days. A wrong leading coefficient
+ *    (e.g. 300 instead of ~365) would produce a result far outside this
+ *    range. Values are reused from the nearby monotonicity check above.
+ *
+ * 4. Rate (4 years): jd(2004) - jd(2000) in [1459.0, 1463.0] days.
+ *    Expected ≈ 4 × 365.2422 = 1460.97. The ±2-day margin absorbs
+ *    short-term perturbations while rejecting grossly wrong coefficients.
+ *
+ * 5. Rate (100 years): jd(2100) - jd(2000) in [36519.0, 36529.0] days.
+ *    Expected ≈ 100 × 365.2422 = 36524.2. The ±5-day margin tolerates
+ *    polynomial fit residuals over a century-long span while catching any
+ *    order-of-magnitude coefficient error.
+ */
+static lcca_bool
+test_lcca_get_winter_solstice_jd_td_monotonicity_and_rate(void) {
+    lcca_bool passed = true;
+
+    /* --- Monotonicity (nearby) and 1-year rate: 1999, 2000, 2001 --- */
+    {
+        const lcca_f64 jd_1999 = lcca_get_winter_solstice_jd_td(1999);
+        const lcca_f64 jd_2000 = lcca_get_winter_solstice_jd_td(2000);
+        const lcca_f64 jd_2001 = lcca_get_winter_solstice_jd_td(2001);
+
+        if (!lcca_c_assert(jd_1999 < jd_2000)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(jd_2000 < jd_2001)) {
+            passed = false;
+        }
+
+        /* Rate (1 year): 2001 - 2000; expected ~365.2422, range [365.0, 366.0]
+         */
+        {
+            const lcca_f64 diff_1yr = jd_2001 - jd_2000;
+            if (!lcca_c_assert(diff_1yr >= 365.0 && diff_1yr <= 366.0)) {
+                passed = false;
+            }
+        }
+    }
+
+    /* --- Monotonicity (wide), 4-year rate, and 100-year rate --- */
+    {
+        const lcca_f64 jd_1900 = lcca_get_winter_solstice_jd_td(1900);
+        const lcca_f64 jd_2000 = lcca_get_winter_solstice_jd_td(2000);
+        const lcca_f64 jd_2004 = lcca_get_winter_solstice_jd_td(2004);
+        const lcca_f64 jd_2100 = lcca_get_winter_solstice_jd_td(2100);
+
+        /* Monotonicity: 1900, 2000, 2100 */
+        if (!lcca_c_assert(jd_1900 < jd_2000)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(jd_2000 < jd_2100)) {
+            passed = false;
+        }
+
+        /* Rate (4 years): 2004 - 2000; expected ~1460.97, range [1459.0,
+         * 1463.0] */
+        {
+            const lcca_f64 diff_4yr = jd_2004 - jd_2000;
+            if (!lcca_c_assert(diff_4yr >= 1459.0 && diff_4yr <= 1463.0)) {
+                passed = false;
+            }
+        }
+
+        /* Rate (100 years): 2100 - 2000; expected ~36524.2, range [36519.0,
+         * 36529.0] */
+        {
+            const lcca_f64 diff_100yr = jd_2100 - jd_2000;
+            if (!lcca_c_assert(diff_100yr >= 36519.0 &&
+                               diff_100yr <= 36529.0)) {
+                passed = false;
+            }
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that the Sun's ecliptic longitude at the computed winter
+ * solstice JD is approximately 270 degrees.
+ *
+ * The winter solstice is defined as the moment the Sun's ecliptic longitude
+ * reaches 270 degrees. This test composes lcca_get_winter_solstice_jd_td
+ * with lcca_get_sun_true_longitude to verify internal consistency between
+ * the two functions. Both accept and return JD(TD), so no Delta T conversion
+ * is needed.
+ *
+ * The tolerance is [268.0, 272.0] (±2 degrees) rather than
+ * TEST_SUN_LONGITUDE_EPSILON because lcca_get_winter_solstice_jd_td (Meeus
+ * Ch. 27) and lcca_get_sun_true_longitude (Meeus Ch. 24) use different
+ * polynomial fits to the same physical model. Inter-chapter discrepancy can
+ * reach ~1-2 degrees in simplified implementations. A wrong-season error
+ * (returning the summer solstice JD, which would yield ~90 degrees, or the
+ * autumnal equinox at ~180 degrees) would produce a discrepancy far outside
+ * this tolerance.
+ *
+ * @todo Once both functions are confirmed against the TypeScript reference,
+ *       tighten the tolerance here. If both use internally consistent Meeus
+ *       formulas, the actual discrepancy should be well under 0.1 degrees.
+ */
+static lcca_bool
+test_lcca_get_winter_solstice_jd_td_sun_longitude_consistency(void) {
+    lcca_bool passed = true;
+    lcca_f64 sun_lon;
+
+    /* Year 2000: sun longitude at computed solstice JD should be ~270 degrees
+     */
+    sun_lon = lcca_get_sun_true_longitude(lcca_get_winter_solstice_jd_td(2000));
+    if (!lcca_c_assert(sun_lon >= 268.0 && sun_lon <= 272.0)) {
+        passed = false;
+    }
+
+    /* Year 2019: same consistency check at a different date */
+    sun_lon = lcca_get_sun_true_longitude(lcca_get_winter_solstice_jd_td(2019));
+    if (!lcca_c_assert(sun_lon >= 268.0 && sun_lon <= 272.0)) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/* =========================================================================
  * Entry point
  * ========================================================================= */
 
@@ -487,6 +708,11 @@ int main(void) {
     /* Execute lcca_approximate_k test suite */
     RUN_TEST(test_lcca_approximate_k_rounding);
     RUN_TEST(test_lcca_approximate_k_monotonicity_and_rate);
+
+    /* Execute lcca_get_winter_solstice_jd_td test suite */
+    RUN_TEST(test_lcca_get_winter_solstice_jd_td_nominal);
+    RUN_TEST(test_lcca_get_winter_solstice_jd_td_monotonicity_and_rate);
+    RUN_TEST(test_lcca_get_winter_solstice_jd_td_sun_longitude_consistency);
 
     printf("=== Test Suite Finished ===\n");
 

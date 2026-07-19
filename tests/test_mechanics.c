@@ -1,5 +1,6 @@
 #include "lcca_common.h"
 #include "lcca_mechanics.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -35,6 +36,24 @@
 #define IS_EQUAL_NEW_MOON_JD(val, expected)                                    \
     ((((val) - (expected)) < TEST_NEW_MOON_JD_EPSILON) &&                      \
      (((expected) - (val)) < TEST_NEW_MOON_JD_EPSILON))
+
+/* Epsilon for lcca_approximate_k rate comparisons.
+ * The approximation is linear with rate ~12.3685/year. Over a one-year
+ * interval, the formula and a correct implementation should agree to within
+ * 0.01; 0.05 is a comfortable margin that still catches a wrong coefficient
+ * (e.g. 12.0 vs 12.3685 produces a 0.37 error over one year). */
+#define TEST_APPROX_K_EPSILON (0.05)
+
+#define IS_CLOSE_APPROX_K(val, expected)                                       \
+    ((((val) - (expected)) < TEST_APPROX_K_EPSILON) &&                         \
+     (((expected) - (val)) < TEST_APPROX_K_EPSILON))
+
+/* Rounds a k approximation to the nearest integer, mirroring the rounding
+ * convention applied in lcca_convert_gregorian_to_lunar:
+ *     floor(lcca_approximate_k(gregorian, midnight) + 0.5)
+ * Note: floor() is required (not a cast) for correct behavior on negative
+ * values. */
+#define ROUND_K(val) ((lcca_i32)floor((val) + 0.5))
 
 /* =========================================================================
  * lcca_get_sun_true_longitude
@@ -235,6 +254,220 @@ static lcca_bool test_lcca_get_new_moon_jd_td_periodicity(void) {
 }
 
 /* =========================================================================
+ * lcca_approximate_k
+ * ========================================================================= */
+
+/**
+ * @brief Tests that lcca_approximate_k rounds to the correct integer k at
+ * the three known New Moon anchor dates (k = -1, 0, +1).
+ *
+ * Oracle dates are the same as in test_lcca_get_new_moon_jd_td_nominal:
+ *   k = -1: Dec 7,  1999 (New Moon)
+ *   k =  0: Jan 6,  2000 (New Moon; the definition of k = 0)
+ *   k = +1: Feb 5,  2000 (New Moon)
+ *
+ * The assertion tested is ROUND_K(lcca_approximate_k(date, midnight)) == k,
+ * which matches the rounding applied in lcca_convert_gregorian_to_lunar.
+ *
+ * All three oracles were verified analytically against (Y - 2000) * 12.3685:
+ *   Dec 7, 1999: k_approx ≈ -0.847 -> ROUND_K = -1
+ *   Jan 6, 2000: k_approx ≈  0.169 -> ROUND_K =  0
+ *   Feb 5, 2000: k_approx ≈  1.182 -> ROUND_K = +1
+ * Each is comfortably within ±0.35 of its target integer, so none of these
+ * is near a rounding boundary.
+ *
+ * UTC (time_zone = 0.0) is used throughout. A ±24-hour timezone shift
+ * affects k by at most 24/24/365 * 12.3685 ≈ 0.034, which cannot push
+ * any of these values past a rounding boundary.
+ *
+ * @todo Add more anchor cases covering dates from different years (including
+ * years containing lunar leap months) after verifying expected ROUND_K values
+ * against the TypeScript reference implementation.
+ */
+static lcca_bool test_lcca_approximate_k_rounding(void) {
+    lcca_bool passed = true;
+    const lcca_time midnight = lcca_new_midnight_time();
+    lcca_gregorian_date date;
+    lcca_f64 result;
+
+    /* k = -1: Dec 7, 1999 New Moon */
+    date.year = 1999;
+    date.month = 12;
+    date.day = 7;
+    date.time_zone = 0.0;
+    result = lcca_approximate_k(date, midnight);
+    if (!lcca_c_assert(ROUND_K(result) == -1)) {
+        passed = false;
+    }
+
+    /* k = 0: Jan 6, 2000 New Moon (definition of k = 0) */
+    date.year = 2000;
+    date.month = 1;
+    date.day = 6;
+    date.time_zone = 0.0;
+    result = lcca_approximate_k(date, midnight);
+    if (!lcca_c_assert(ROUND_K(result) == 0)) {
+        passed = false;
+    }
+
+    /* k = +1: Feb 5, 2000 New Moon */
+    date.year = 2000;
+    date.month = 2;
+    date.day = 5;
+    date.time_zone = 0.0;
+    result = lcca_approximate_k(date, midnight);
+    if (!lcca_c_assert(ROUND_K(result) == 1)) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests monotonicity, annual rate, synodic-month rate, and
+ * time-of-day sensitivity of lcca_approximate_k.
+ *
+ * Five structural invariants are verified:
+ *
+ * 1. Monotonicity (nearby): the result strictly increases across the three
+ *    anchor dates Dec 7 1999 -> Jan 6 2000 -> Feb 5 2000. A sign error in
+ *    the year-to-k coefficient would invert this.
+ *
+ * 2. Monotonicity (wide): the result is also strictly increasing from
+ *    Jan 1 1900 -> Jan 1 2000 -> Jan 1 2100, exercising large negative
+ *    and positive k values.
+ *
+ * 3. Rate over one synodic month: k(Feb 5, 2000) - k(Jan 6, 2000).
+ *    These dates are 30 days apart; the expected difference is
+ *    30 / 29.5306 ≈ 1.016. The range (0.9, 1.1) is used, which is wide
+ *    enough to tolerate minor decimal-year implementation differences but
+ *    catches a grossly wrong coefficient (e.g. 10.0/year would give ≈ 0.82).
+ *    Values are reused from the monotonicity test above.
+ *
+ * 4. Rate over one calendar year: k(Jan 1, 2001) - k(Jan 1, 2000).
+ *    The Meeus formula's explicit rate is 12.3685 lunations/year. Jan 1 is
+ *    chosen for both endpoints to eliminate day-of-year fraction arithmetic
+ *    from the oracle derivation. IS_CLOSE_APPROX_K with epsilon 0.05 is
+ *    used, which catches a wrong coefficient (12.0 instead of 12.3685
+ *    produces an error of 0.3685, well above the threshold).
+ *
+ * 5. Time-of-day sensitivity: for the same date, noon must give a strictly
+ *    higher result than midnight. The expected delta is ~0.5/29.53 ≈ 0.017
+ *    k units per 12-hour difference. A bug that ignores the time parameter
+ *    entirely would produce equal results, failing this check.
+ *
+ * @todo Once reference values are available from the TypeScript implementation
+ *       or JPL Horizons, add precise IS_CLOSE_APPROX_K assertions for the
+ *       synodic-month and annual-rate cases to replace the range checks.
+ */
+static lcca_bool test_lcca_approximate_k_monotonicity_and_rate(void) {
+    lcca_bool passed = true;
+    const lcca_time midnight = lcca_new_midnight_time();
+    lcca_gregorian_date d_dec, d_jan6, d_feb;
+    lcca_f64 k_dec, k_jan6, k_feb;
+
+    /* --- Monotonicity (nearby): three anchor dates --- */
+    d_dec.year = 1999;
+    d_dec.month = 12;
+    d_dec.day = 7;
+    d_dec.time_zone = 0.0;
+    d_jan6.year = 2000;
+    d_jan6.month = 1;
+    d_jan6.day = 6;
+    d_jan6.time_zone = 0.0;
+    d_feb.year = 2000;
+    d_feb.month = 2;
+    d_feb.day = 5;
+    d_feb.time_zone = 0.0;
+    k_dec = lcca_approximate_k(d_dec, midnight);
+    k_jan6 = lcca_approximate_k(d_jan6, midnight);
+    k_feb = lcca_approximate_k(d_feb, midnight);
+    if (!lcca_c_assert(k_dec < k_jan6)) {
+        passed = false;
+    }
+    if (!lcca_c_assert(k_jan6 < k_feb)) {
+        passed = false;
+    }
+
+    /* --- Monotonicity (wide): Jan 1, 1900 / 2000 / 2100 --- */
+    {
+        lcca_gregorian_date d_1900, d_2000, d_2100;
+        d_1900.year = 1900;
+        d_1900.month = 1;
+        d_1900.day = 1;
+        d_1900.time_zone = 0.0;
+        d_2000.year = 2000;
+        d_2000.month = 1;
+        d_2000.day = 1;
+        d_2000.time_zone = 0.0;
+        d_2100.year = 2100;
+        d_2100.month = 1;
+        d_2100.day = 1;
+        d_2100.time_zone = 0.0;
+        if (!lcca_c_assert(lcca_approximate_k(d_1900, midnight) <
+                           lcca_approximate_k(d_2000, midnight))) {
+            passed = false;
+        }
+        if (!lcca_c_assert(lcca_approximate_k(d_2000, midnight) <
+                           lcca_approximate_k(d_2100, midnight))) {
+            passed = false;
+        }
+    }
+
+    /* --- Rate over one synodic month: k(Feb 5) - k(Jan 6) --- */
+    /* 30 days / 29.5306 days/month ≈ 1.016; acceptable range (0.9, 1.1) */
+    {
+        const lcca_f64 diff = k_feb - k_jan6;
+        if (!lcca_c_assert(diff > 0.9 && diff < 1.1)) {
+            passed = false;
+        }
+    }
+
+    /* --- Rate over one calendar year: k(Jan 1, 2001) - k(Jan 1, 2000) --- */
+    /* Expected: ~12.3685 (Meeus formula rate). Jan 1 chosen to eliminate
+     * day-of-year fraction ambiguity from the oracle derivation. */
+    {
+        lcca_gregorian_date y2000, y2001;
+        y2000.year = 2000;
+        y2000.month = 1;
+        y2000.day = 1;
+        y2000.time_zone = 0.0;
+        y2001.year = 2001;
+        y2001.month = 1;
+        y2001.day = 1;
+        y2001.time_zone = 0.0;
+        {
+            const lcca_f64 annual_rate = lcca_approximate_k(y2001, midnight) -
+                                         lcca_approximate_k(y2000, midnight);
+            if (!lcca_c_assert(IS_CLOSE_APPROX_K(annual_rate, 12.3685))) {
+                passed = false;
+            }
+        }
+    }
+
+    /* --- Time-of-day sensitivity --- */
+    /* Noon must give a strictly higher result than midnight on the same date.
+     * Expected delta ≈ 0.5/29.53 ≈ 0.017 k units per 12-hour difference. */
+    {
+        lcca_gregorian_date d;
+        lcca_time noon;
+        d.year = 2000;
+        d.month = 6;
+        d.day = 15;
+        d.time_zone = 0.0;
+        noon.hours = 12;
+        noon.minutes = 0;
+        noon.seconds = 0.0;
+        if (!lcca_c_assert(lcca_approximate_k(d, midnight) <
+                           lcca_approximate_k(d, noon))) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/* =========================================================================
  * Entry point
  * ========================================================================= */
 
@@ -250,6 +483,10 @@ int main(void) {
     /* Execute lcca_get_new_moon_jd_td test suite */
     RUN_TEST(test_lcca_get_new_moon_jd_td_nominal);
     RUN_TEST(test_lcca_get_new_moon_jd_td_periodicity);
+
+    /* Execute lcca_approximate_k test suite */
+    RUN_TEST(test_lcca_approximate_k_rounding);
+    RUN_TEST(test_lcca_approximate_k_monotonicity_and_rate);
 
     printf("=== Test Suite Finished ===\n");
 

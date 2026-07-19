@@ -20,7 +20,7 @@
   - [ ] lcca_mechanics
     - [x] lcca_get_sun_true_longitude
     - [x] lcca_get_new_moon_jd_td
-    - [ ] lcca_approximate_k
+    - [x] lcca_approximate_k
     - [ ] lcca_get_winter_solstice_jd_td
     - [ ] lcca_get_k_of_month_11
     - [ ] lcca_get_k_of_leap_month

@@ -16,6 +16,17 @@
  * - All time zones are represented as decimal hour offsets from UTC
  *   (for example, +07:00 is represented as 7.0).
  *
+ * For timezone offset validation, we employ a practical arithmetic bound of -24
+ * to +24 hours rather than restricting to current geopolitical realities or
+ * leaving the input unbounded. Restricting validation to the current real-world
+ * range of -12 to +14 hours ties correctness to temporary political decisions,
+ * risking rejection of valid inputs if new timezones (such as UTC+15) are ever
+ * established. Conversely, leaving the input unbounded fails to catch obvious
+ * bugs, such as passing an offset of 300, because timezone offsets, unlike
+ * angles, have no meaningful normalization operation. The -24 to +24 range
+ * provides a stable validation boundary that accepts all current and plausible
+ * future timezones while rejecting gross input errors.
+ *
  * ## Supported functionality
  *
  * - Representation of:
@@ -159,24 +170,15 @@ lcca_time lcca_new_midnight_time(void);
 lcca_bool lcca_is_valid_time_of_day(const lcca_time time);
 
 /**
- * @brief Checks whether a date in the Gregorian calendar is valid.
+ * @brief Checks whether a date in the Gregorian calendar is valid. Regarding
+ * timezone offset validation, consult the file-level documentation of
+ * `lcca_calendar.h`.
  *
  * @post This function has no side effects.
  *
  * @param[in] gregorian A date in the Gregorian calendar
  *
  * @returns 1 if the Gregorian date is valid, otherwise, 0.
- *
- * For timezone offset validation, we employ a practical arithmetic bound of -24
- * to +24 hours rather than restricting to current geopolitical realities or
- * leaving the input unbounded. Restricting validation to the current real-world
- * range of -12 to +14 hours ties correctness to temporary political decisions,
- * risking rejection of valid inputs if new timezones (such as UTC+15) are ever
- * established. Conversely, leaving the input unbounded fails to catch obvious
- * bugs, such as passing an offset of 300, because timezone offsets, unlike
- * angles, have no meaningful normalization operation. The -24 to +24 range
- * provides a stable validation boundary that accepts all current and plausible
- * future timezones while rejecting gross input errors.
  */
 lcca_bool lcca_is_valid_gregorian_date(const lcca_gregorian_date gregorian);
 

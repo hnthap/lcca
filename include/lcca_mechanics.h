@@ -176,7 +176,7 @@ lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year);
  * @brief Calculates the Lunation number (k) of the New Moon that begins the
  * 11th lunar month (Month 11).
  *
- * @pre Time zone is valid.
+ * @pre Time zone shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
  *          effects of lcca_c_assert (if any) in case of precondition violation.
@@ -186,6 +186,17 @@ lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year);
  * @param[in] time_zone Time zone offset in hours
  *
  * @returns Lunation number (k) of the New Moon that begins Month 11
+ *
+ * For timezone offset validation, we employ a practical arithmetic bound of -24
+ * to +24 hours rather than restricting to current geopolitical realities or
+ * leaving the input unbounded. Restricting validation to the current real-world
+ * range of -12 to +14 hours ties correctness to temporary political decisions,
+ * risking rejection of valid inputs if new timezones (such as UTC+15) are ever
+ * established. Conversely, leaving the input unbounded fails to catch obvious
+ * bugs, such as passing an offset of 300, because timezone offsets, unlike
+ * angles, have no meaningful normalization operation. The -24 to +24 range
+ * provides a stable validation boundary that accepts all current and plausible
+ * future timezones while rejecting gross input errors.
  */
 lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
 
@@ -210,6 +221,17 @@ lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
  *
  * @returns k of the first month without a Principal Solar Term in the lunar
  * year from Month 11 to before the next Month 11.
+ *
+ * For timezone offset validation, we employ a practical arithmetic bound of -24
+ * to +24 hours rather than restricting to current geopolitical realities or
+ * leaving the input unbounded. Restricting validation to the current real-world
+ * range of -12 to +14 hours ties correctness to temporary political decisions,
+ * risking rejection of valid inputs if new timezones (such as UTC+15) are ever
+ * established. Conversely, leaving the input unbounded fails to catch obvious
+ * bugs, such as passing an offset of 300, because timezone offsets, unlike
+ * angles, have no meaningful normalization operation. The -24 to +24 range
+ * provides a stable validation boundary that accepts all current and plausible
+ * future timezones while rejecting gross input errors.
  */
 lcca_leap_month_result
 lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
@@ -230,6 +252,17 @@ lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
  * @param[in] time_zone Time zone offset in hours
  *
  * @returns JD (UT) of the midnight of the day which New Moon falls into
+ *
+ * For timezone offset validation, we employ a practical arithmetic bound of -24
+ * to +24 hours rather than restricting to current geopolitical realities or
+ * leaving the input unbounded. Restricting validation to the current real-world
+ * range of -12 to +14 hours ties correctness to temporary political decisions,
+ * risking rejection of valid inputs if new timezones (such as UTC+15) are ever
+ * established. Conversely, leaving the input unbounded fails to catch obvious
+ * bugs, such as passing an offset of 300, because timezone offsets, unlike
+ * angles, have no meaningful normalization operation. The -24 to +24 range
+ * provides a stable validation boundary that accepts all current and plausible
+ * future timezones while rejecting gross input errors.
  */
 lcca_f64 lcca_get_new_moon_midnight_jd_ut(const lcca_i32 k,
                                           const lcca_f64 time_zone);

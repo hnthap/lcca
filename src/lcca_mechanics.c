@@ -173,7 +173,7 @@ lcca_f64 lcca_get_winter_solstice_jd_td(const lcca_i32 year) {
 }
 
 lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone) {
-    (void)lcca_c_assert((time_zone >= -12.0) && (time_zone <= 14.0));
+    (void)lcca_c_assert((time_zone <= 24.0) && (time_zone >= -24.0));
     {
         /* w: The moment of the Winter Solstice in JD (TD) */
         const lcca_f64 w_td = lcca_get_winter_solstice_jd_td(year);
@@ -216,7 +216,7 @@ lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
     result.k = 0; /* Prevents leaking stack memory */
 
     (void)lcca_c_assert(current_year_month_11_k < next_year_month_11_k);
-    (void)lcca_c_assert((time_zone >= -12.0) && (time_zone <= 14.0));
+    (void)lcca_c_assert((time_zone <= 24.0) && (time_zone >= -24.0));
 
     if (next_year_month_11_k - current_year_month_11_k <= 12) {
         return result;
@@ -272,7 +272,7 @@ lcca_f64 lcca_get_new_moon_midnight_jd_ut(const lcca_i32 k,
     lcca_f64 td;
     lcca_f64 ut;
     lcca_gregorian_date date;
-    (void)lcca_c_assert((time_zone >= -12.0) && (time_zone <= 14.0));
+    (void)lcca_c_assert((time_zone <= 24.0) && (time_zone >= -24.0));
     td = lcca_get_new_moon_jd_td(k);
     ut = td - (lcca_get_delta_t_seconds_td(td) / 86400.0);
     date = lcca_convert_jd_ut_to_gregorian(ut, time_zone);

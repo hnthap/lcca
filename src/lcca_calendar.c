@@ -20,10 +20,14 @@ lcca_bool lcca_is_valid_time_of_day(const lcca_time time) {
 }
 
 lcca_bool lcca_is_valid_gregorian_date(const lcca_gregorian_date gregorian) {
-    return ((((gregorian.month >= 1) && (gregorian.month <= 12)) &&
-             ((gregorian.day >= 1) &&
-              (gregorian.day <= lcca_get_gregorian_month_size(gregorian)))) &&
-            ((gregorian.time_zone <= 14.0) && (gregorian.time_zone >= -12.0)));
+    if ((gregorian.month < 1) || (gregorian.month > 12)) {
+        return false;
+    }
+    if ((gregorian.time_zone >= 24.0) || (gregorian.time_zone <= -24.0)) {
+        return false;
+    }
+    return (gregorian.day >= 1) &&
+           (gregorian.day <= lcca_get_gregorian_month_size(gregorian));
 }
 
 lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian) {

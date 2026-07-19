@@ -448,6 +448,174 @@ static lcca_bool test_lcca_convert_gregorian_to_jd_ut_nominal(void) {
         passed = false;
     }
 
+    /* Test Case 4: 1987 January 27.0 */
+    /* Source: Meeus (1991) p. 62 */
+    date_test.time_zone = 0.0;
+    date_test.year = 1987;
+    date_test.month = 1;
+    date_test.day = 27;
+
+    time_test.hours = 0;
+    time_test.minutes = 0;
+    time_test.seconds = 0.0;
+
+    jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+    if (!lcca_c_assert(IS_EQUAL_F64(jd_result, 2446822.5))) {
+        passed = false;
+    }
+
+    /* Test Case 5: 1987 June 19.5 */
+    /* Source: Meeus (1991) p. 62 */
+    date_test.time_zone = 0.0;
+    date_test.year = 1987;
+    date_test.month = 6;
+    date_test.day = 19;
+
+    time_test.hours = 12;
+    time_test.minutes = 0;
+    time_test.seconds = 0.0;
+
+    jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+    if (!lcca_c_assert(IS_EQUAL_F64(jd_result, 2446966.0))) {
+        passed = false;
+    }
+
+    /* Test Case 6: 1900 January 1.0 */
+    /* Source: Meeus (1991) p. 62 */
+    /* 1900 is an exact century year (1900 % 100 == 0), which exercises */
+    /* the Gregorian correction (B) with A = 19, a positive exact century. */
+    date_test.time_zone = 0.0;
+    date_test.year = 1900;
+    date_test.month = 1;
+    date_test.day = 1;
+
+    time_test.hours = 0;
+    time_test.minutes = 0;
+    time_test.seconds = 0.0;
+
+    jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+    if (!lcca_c_assert(IS_EQUAL_F64(jd_result, 2415020.5))) {
+        passed = false;
+    }
+
+    /* Test Case 7: 1600 January 1.0 */
+    /* Source: Meeus (1991) p. 62 */
+    /* 1600 is divisible by 400, exercising the A % 4 == 0 path. */
+    date_test.time_zone = 0.0;
+    date_test.year = 1600;
+    date_test.month = 1;
+    date_test.day = 1;
+
+    time_test.hours = 0;
+    time_test.minutes = 0;
+    time_test.seconds = 0.0;
+
+    jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+    if (!lcca_c_assert(IS_EQUAL_F64(jd_result, 2305447.5))) {
+        passed = false;
+    }
+
+    /* Test Case 8: 1600 December 31.0 */
+    /* Source: Meeus (1991) p. 62 */
+    /* End-of-year boundary within the same century as Test Case 7. */
+    date_test.time_zone = 0.0;
+    date_test.year = 1600;
+    date_test.month = 12;
+    date_test.day = 31;
+
+    time_test.hours = 0;
+    time_test.minutes = 0;
+    time_test.seconds = 0.0;
+
+    jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+    if (!lcca_c_assert(IS_EQUAL_F64(jd_result, 2305812.5))) {
+        passed = false;
+    }
+
+    /* Test Case 9: Negative year round-trip, non-century year.
+       Year -1000: -1000 % 100 == 0 so the primary A correction does NOT
+       fire, but A = -10 and -10 % 4 != 0 so the B correction fires.
+       Converts to JD, then back to Gregorian, and asserts recovery of the
+       original date. No known JD anchor needed. */
+    {
+        lcca_gregorian_date recovered;
+        date_test.time_zone = 0.0;
+        date_test.year = -1000;
+        date_test.month = 7;
+        date_test.day = 12;
+
+        time_test.hours = 0;
+        time_test.minutes = 0;
+        time_test.seconds = 0.0;
+
+        jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+        recovered = lcca_convert_jd_ut_to_gregorian(jd_result, 0.0);
+        if (!lcca_c_assert(recovered.year == -1000)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.month == 7)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.day == 12)) {
+            passed = false;
+        }
+    }
+
+    /* Test Case 10: Negative year round-trip, non-exact-century year.
+       Year -1001: -1001 % 100 != 0 so the primary A correction fires.
+       Same round-trip approach as Test Case 9. */
+    {
+        lcca_gregorian_date recovered;
+        date_test.time_zone = 0.0;
+        date_test.year = -1001;
+        date_test.month = 8;
+        date_test.day = 17;
+
+        time_test.hours = 0;
+        time_test.minutes = 0;
+        time_test.seconds = 0.0;
+
+        jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+        recovered = lcca_convert_jd_ut_to_gregorian(jd_result, 0.0);
+        if (!lcca_c_assert(recovered.year == -1001)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.month == 8)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.day == 17)) {
+            passed = false;
+        }
+    }
+
+    /* Test Case 11: Negative year round-trip, exact multiple of 400.
+       Year -400: -400 % 100 == 0 AND -400 % 4 == 0, so neither correction
+       fires. Confirms no over-correction on negative years evenly divisible
+       by 400. */
+    {
+        lcca_gregorian_date recovered;
+        date_test.time_zone = 0.0;
+        date_test.year = -400;
+        date_test.month = 3;
+        date_test.day = 1;
+
+        time_test.hours = 0;
+        time_test.minutes = 0;
+        time_test.seconds = 0.0;
+
+        jd_result = lcca_convert_gregorian_to_jd_ut(date_test, time_test);
+        recovered = lcca_convert_jd_ut_to_gregorian(jd_result, 0.0);
+        if (!lcca_c_assert(recovered.year == -400)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.month == 3)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(recovered.day == 1)) {
+            passed = false;
+        }
+    }
+
     return passed;
 }
 

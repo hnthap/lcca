@@ -32,6 +32,9 @@ lcca_bool lcca_is_valid_gregorian_date(const lcca_gregorian_date gregorian) {
 
 lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian) {
     lcca_i8 month_size = 31;
+    if (!lcca_c_assert((gregorian.month >= 1) && (gregorian.month <= 12))) {
+        return -1;
+    }
     if ((((gregorian.month == 4) || (gregorian.month == 6)) ||
          (gregorian.month == 9)) ||
         (gregorian.month == 11)) {
@@ -42,9 +45,6 @@ lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian) {
              ((gregorian.year % 4 == 0) && (gregorian.year % 100 != 0)))
                 ? 29
                 : 28;
-    }
-    if (!lcca_c_assert((gregorian.month >= 1) && (gregorian.month <= 12))) {
-        return -1;
     }
     return month_size;
 }

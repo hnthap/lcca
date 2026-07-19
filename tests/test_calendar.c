@@ -392,7 +392,8 @@ static lcca_bool test_lcca_get_gregorian_month_size_violation(void) {
 /**
  * @brief Tests lcca_convert_gregorian_to_jd_ut with recognized astronomical
  * epochs.
- * * Relies entirely on the caller respecting the precondition of valid inputs.
+ *
+ * Relies entirely on the caller respecting the precondition of valid inputs.
  */
 static lcca_bool test_lcca_convert_gregorian_to_jd_ut_nominal(void) {
     lcca_bool passed = true;
@@ -401,6 +402,7 @@ static lcca_bool test_lcca_convert_gregorian_to_jd_ut_nominal(void) {
     lcca_f64 jd_result;
 
     /* Test Case 1: Standard J2000.0 Epoch (January 1.5, 2000, UT) */
+    /* Source: Meeus (1991) p. 62 */
     date_test.time_zone = 0.0;
     date_test.year = 2000;
     date_test.month = 1;
@@ -430,7 +432,7 @@ static lcca_bool test_lcca_convert_gregorian_to_jd_ut_nominal(void) {
         passed = false;
     }
 
-    /* Test Case 3: Time Zone handling (J2000 Epoch stated in +05:00 Local Time)
+    /* Test Case 3: Time zone handling (J2000 Epoch stated in +05:00 local time)
        January 1, 2000, 17:00:00 in +05:00 is exactly 12:00:00 UT. */
     date_test.time_zone = 5.0;
     date_test.year = 2000;

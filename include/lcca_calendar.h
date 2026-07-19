@@ -189,7 +189,7 @@ lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian);
  * UT.
  *
  * See more: Chapter 7 of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @pre The input Gregorian date is valid.
  *
@@ -208,7 +208,7 @@ lcca_f64 lcca_convert_gregorian_to_jd_ut(const lcca_gregorian_date gregorian,
  * respect to the specified time zone.
  *
  * See more: Chapter 7 of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @pre The input JD is positive.
  *
@@ -227,7 +227,7 @@ lcca_gregorian_date lcca_convert_jd_ut_to_gregorian(const lcca_f64 jd_ut,
  * 24:00:00.000), with respect to the specified time zone.
  *
  * See more: Chapter 7 of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @pre The input JD is positive.
  *
@@ -246,7 +246,7 @@ lcca_time lcca_convert_jd_ut_to_time_of_day(const lcca_f64 jd_ut,
  * Time (TD) and Universal Time (UT) for a given JD (UT).
  *
  * See more: Chapter 9 "Dynamical Time" of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @post This function has no side effects.
  *
@@ -261,7 +261,7 @@ lcca_f64 lcca_get_delta_t_seconds(const lcca_f64 jd_ut);
  * Time (TD) and Universal Time (UT) for a given JD (TD).
  *
  * See more: Chapter 9 "Dynamical Time" of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @post This function has no side effects.
  *

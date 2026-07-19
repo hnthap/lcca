@@ -116,7 +116,7 @@ typedef struct lcca_leap_month_result {
  *          in degrees.
  *
  * See more: Chapter 24 "Solar Coordinates" of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @post This function has no side effects.
  *
@@ -131,7 +131,7 @@ lcca_f64 lcca_get_sun_true_longitude(const lcca_f64 jd_td);
  * @brief   Calculates the exact JD in Dynamic Time of the k-th New Moon.
  *
  * See more: Chapter 47 "Phases of the Moon" of
- * Astronomical Algorithms (Jean Meuus, 1991).
+ * Astronomical Algorithms (Jean Meeus, 1991).
  *
  * @post This function has no side effects.
  *

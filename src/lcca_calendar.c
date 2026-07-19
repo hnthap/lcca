@@ -9,7 +9,7 @@ lcca_time lcca_new_midnight_time(void) {
     lcca_time time;
     time.hours = 0;
     time.minutes = 0;
-    time.seconds = 0;
+    time.seconds = 0.0;
     return time;
 }
 

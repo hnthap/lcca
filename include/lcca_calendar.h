@@ -79,8 +79,8 @@
  * cleanup is required.
  */
 
-#ifndef LCCA_LUNAR_CALENDAR_H
-#define LCCA_LUNAR_CALENDAR_H
+#ifndef LCCA_CALENDAR_H
+#define LCCA_CALENDAR_H
 
 #include "lcca_numeric.h"
 
@@ -316,4 +316,4 @@ lcca_convert_lunar_to_gregorian(const lcca_lunar_date lunar);
 }
 #endif
 
-#endif /* LCCA_LUNAR_CALENDAR_H */
+#endif /* LCCA_CALENDAR_H */

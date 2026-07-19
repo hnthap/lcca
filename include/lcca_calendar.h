@@ -145,7 +145,7 @@ typedef struct lcca_time {
  * It allocates no dynamic memory and returns the initialized structure by
  * value.
  *
- * @post The returned time evaluates as valid under lcca_is_valid_time_of_day.
+ * @post The returned time evaluates as valid under lcca_is_valid_time_of_day().
  *
  * @post This function has no side effects.
  *
@@ -188,7 +188,7 @@ lcca_bool lcca_is_valid_gregorian_date(const lcca_gregorian_date gregorian);
  * @pre The year and month of the input Gregorian date shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] gregorian A date in the Gregorian calendar
  *
@@ -207,7 +207,7 @@ lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian);
  * @pre The input Gregorian date is valid.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] gregorian The Gregorian date with time of day
  *
@@ -226,7 +226,7 @@ lcca_f64 lcca_convert_gregorian_to_jd_ut(const lcca_gregorian_date gregorian,
  * @pre The input JD is positive.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] jd_ut Positive JD
  *
@@ -245,7 +245,7 @@ lcca_gregorian_date lcca_convert_jd_ut_to_gregorian(const lcca_f64 jd_ut,
  * @pre The input JD is positive.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] jd_ut Positive JD
  *
@@ -290,7 +290,7 @@ lcca_f64 lcca_get_delta_t_seconds_td(const lcca_f64 jd_td);
  * @pre The input Gregorian date shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] gregorian The Gregorian date
  *
@@ -305,7 +305,7 @@ lcca_convert_gregorian_to_lunar(const lcca_gregorian_date gregorian);
  * @pre The input lunar date shall be valid.
  *
  * @post    This function has no side effects, but it also inherits the side
- *          effects of lcca_c_assert (if any) in case of precondition violation.
+ *          effects of lcca_c_assert() (if any) in case of precondition violation.
  *
  * @param[in] lunar The lunar date
  *

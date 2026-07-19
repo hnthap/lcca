@@ -17,7 +17,7 @@
  * ## Provided functionality
  *
  * - Fixed-signature assertion failure reporting
- * - Dynamic assertion macro (`lcca_c_assert`)
+ * - Dynamic assertion macro (`lcca_c_assert()`)
  * - Common definitions shared across library components
  *
  * ## Assertion behavior

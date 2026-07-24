@@ -483,6 +483,86 @@ static lcca_bool test_lcca_approximate_k_monotonicity_and_rate(void) {
     return passed;
 }
 
+/**
+ * @brief Regression test for the day-fraction term of lcca_approximate_k.
+ *
+ * The time-of-day contribution F must be a full *day* fraction: the entire
+ * (hours - time_zone) + minute/second remainder is divided by 24, exactly as
+ * in lcca_convert_gregorian_to_jd_ut. A prior bug divided only the
+ * minute/second remainder by 24 and left (hours - time_zone) in raw hours,
+ * inflating the time contribution roughly 24-fold and making a UTC-offset
+ * change alter the result even though the represented instant is identical.
+ *
+ * Two invariants pin this down; both hold for the correct formula and both
+ * fail for the buggy one. They are checked in *magnitude*, not just sign, so
+ * that the earlier "noon > midnight" sensitivity check (which the bug also
+ * satisfied) cannot mask a regression.
+ *
+ * 1. Noon-vs-midnight magnitude. For the same UTC instant, advancing the clock
+ *    by 12 hours advances k by (12/24) * (12.3685/12) = 0.5/12 * 12.3685
+ *    ... more simply, one day advances k by 12.3685/((K==1)?366:365). Half a
+ *    day is therefore ~0.5 * 12.3685/365 ≈ 0.01694 (2000 is a leap year, so
+ *    366: ~0.01690). The buggy formula, leaving 12 hours undivided, would
+ *    instead shift k by ~12 * 12.3685/366 ≈ 0.406 — off by ~24x. A tight
+ *    epsilon around the true value rejects the bug.
+ *
+ * 2. Timezone / clock equivalence. 06:00 at UTC+7 and 00:00 at UTC+1 denote
+ *    the same UTC instant ((h - tz) is -1 in both cases), so k must be equal.
+ *    The buggy formula makes the (hours - time_zone) term dominate and the two
+ *    diverge by ~6 * 12.3685/365 ≈ 0.203. Equality within a tight epsilon
+ *    confirms the term is handled as a proper day fraction.
+ */
+static lcca_bool test_lcca_approximate_k_day_fraction(void) {
+    lcca_bool passed = true;
+    const lcca_time midnight = lcca_new_midnight_time();
+
+    /* --- 1. Noon-vs-midnight magnitude --- */
+    {
+        lcca_gregorian_date d;
+        lcca_time noon;
+        lcca_f64 delta;
+        /* One day advances k by 12.3685/366 (2000 is a leap year);
+         * half a day is therefore ~0.016896. */
+        const lcca_f64 expected_half_day_delta = (0.5 * 12.3685) / 366.0;
+        d.year = 2000;
+        d.month = 6;
+        d.day = 15;
+        d.time_zone = 0.0;
+        noon.hours = 12;
+        noon.minutes = 0;
+        noon.seconds = 0.0;
+        delta = lcca_approximate_k(d, noon) - lcca_approximate_k(d, midnight);
+        if (!lcca_c_assert(IS_CLOSE_APPROX_K(delta, expected_half_day_delta))) {
+            passed = false;
+        }
+    }
+
+    /* --- 2. Timezone / clock equivalence (same UTC instant) --- */
+    {
+        lcca_gregorian_date d_tz7, d_tz1;
+        lcca_time t_0600, t_0000;
+        lcca_f64 k_tz7, k_tz1;
+        /* 06:00 at UTC+7 and 00:00 at UTC+1 are the same UTC instant. */
+        d_tz7.year = 2000;
+        d_tz7.month = 6;
+        d_tz7.day = 15;
+        d_tz7.time_zone = 7.0;
+        d_tz1 = d_tz7;
+        d_tz1.time_zone = 1.0;
+        t_0600.hours = 6;
+        t_0600.minutes = 0;
+        t_0600.seconds = 0.0;
+        t_0000 = midnight;
+        k_tz7 = lcca_approximate_k(d_tz7, t_0600);
+        k_tz1 = lcca_approximate_k(d_tz1, t_0000);
+        if (!lcca_c_assert(IS_CLOSE_APPROX_K(k_tz7, k_tz1))) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
 /* =========================================================================
  * lcca_get_winter_solstice_jd_td
  * ========================================================================= */
@@ -974,6 +1054,7 @@ int main(void) {
     /* Execute lcca_approximate_k test suite */
     RUN_TEST(test_lcca_approximate_k_rounding);
     RUN_TEST(test_lcca_approximate_k_monotonicity_and_rate);
+    RUN_TEST(test_lcca_approximate_k_day_fraction);
 
     /* Execute lcca_get_winter_solstice_jd_td test suite */
     RUN_TEST(test_lcca_get_winter_solstice_jd_td_nominal);

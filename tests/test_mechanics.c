@@ -1035,6 +1035,173 @@ static lcca_bool test_lcca_get_k_of_month_11_winter_solstice_containment(void) {
 }
 
 /* =========================================================================
+ * lcca_get_k_of_leap_month
+ * ========================================================================= */
+
+/**
+ * @brief Tests the structural short-circuit: a lunar year spanning 12 or fewer
+ * lunations between consecutive Month 11 anchors never contains a leap month.
+ *
+ * A regular lunisolar year has exactly 12 lunar months between one Month 11
+ * and the next; a leap year has 13. lcca_get_k_of_leap_month returns early with
+ * have_leap_month = 0 whenever (next - current) <= 12, without consulting the
+ * astronomy at all. This invariant is therefore fully deterministic and needs
+ * no oracle: it is pure calendar arithmetic.
+ *
+ * Both the boundary case (span exactly 12) and a strictly-shorter span (11)
+ * are checked. On the no-leap path the function also documents result.k = 0
+ * (set explicitly to avoid leaking uninitialised stack); that is asserted too.
+ * A regression that moved the comparison to (< 12) or (<= 11) would report a
+ * spurious leap month here.
+ */
+static lcca_bool test_lcca_get_k_of_leap_month_no_leap_short_span(void) {
+    lcca_bool passed = true;
+
+    /* Span exactly 12: a regular year, no leap month. */
+    {
+        const lcca_leap_month_result r =
+            lcca_get_k_of_leap_month(100, 112, 7.0);
+        if (!lcca_c_assert(r.have_leap_month == 0)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(r.k == 0)) {
+            passed = false;
+        }
+    }
+
+    /* Span 11 (shorter still): likewise no leap month. */
+    {
+        const lcca_leap_month_result r =
+            lcca_get_k_of_leap_month(100, 111, 7.0);
+        if (!lcca_c_assert(r.have_leap_month == 0)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests two real leap years against externally-known oracle values.
+ *
+ * Both the Vietnamese and Chinese lunisolar calendars record:
+ *   - 2004: a leap Month 2
+ *   - 2009: a leap Month 5
+ *
+ * The Month 11 anchors bounding each of these lunar years (computed by
+ * lcca_get_k_of_month_11, whose own values are pinned in the tests above)
+ * enclose a 13-lunation span, and lcca_get_k_of_leap_month must locate the
+ * intercalary month within that span. The expected lunation numbers were
+ * cross-checked by feeding each returned k back through
+ * lcca_get_new_moon_midnight_jd_ut -> lcca_convert_gregorian_to_lunar, which
+ * yields:
+ *   k = 52  -> 2004-03-21 -> lunar leap Month 2, year 2004
+ *   k = 117 -> 2009-06-23 -> lunar leap Month 5, year 2009
+ *
+ * All values use time_zone = 7.0 (Vietnam, UTC+7), matching the calendar the
+ * oracle months are quoted from. The anchors are read from
+ * lcca_get_k_of_month_11 rather than hard-coded so the test exercises the true
+ * composed pipeline; the leap k is asserted exactly.
+ *
+ * @todo Confirm k = 52 and k = 117 against the TypeScript reference
+ *       implementation to guard against a shared systematic error in the
+ *       Meeus new-moon / sun-longitude formulas used by both this port and the
+ *       manual oracle derivation.
+ */
+static lcca_bool test_lcca_get_k_of_leap_month_known_leap_years(void) {
+    lcca_bool passed = true;
+    const lcca_f64 tz = 7.0;
+
+    /* 2004: leap Month 2. Window is bounded by Month 11 of 2003 and 2004. */
+    {
+        const lcca_i32 current = lcca_get_k_of_month_11(2003, tz);
+        const lcca_i32 next = lcca_get_k_of_month_11(2004, tz);
+        const lcca_leap_month_result r =
+            lcca_get_k_of_leap_month(current, next, tz);
+        if (!lcca_c_assert(next - current == 13)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(r.have_leap_month == 1)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(r.k == 52)) {
+            passed = false;
+        }
+    }
+
+    /* 2009: leap Month 5. Window is bounded by Month 11 of 2008 and 2009. */
+    {
+        const lcca_i32 current = lcca_get_k_of_month_11(2008, tz);
+        const lcca_i32 next = lcca_get_k_of_month_11(2009, tz);
+        const lcca_leap_month_result r =
+            lcca_get_k_of_leap_month(current, next, tz);
+        if (!lcca_c_assert(next - current == 13)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(r.have_leap_month == 1)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(r.k == 117)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that when a leap month is reported, its lunation number lies
+ * strictly inside the open interval (current, next), and that the result is
+ * deterministic.
+ *
+ * The leap month is one of the lunar months between the two Month 11 anchors,
+ * so its k must satisfy current < k < next. (The scan only inspects offsets 1
+ * through 12 from current, so it can never return current itself nor reach
+ * next.) This is a weaker, oracle-free property than the exact-value test
+ * above, but it holds for every leap year and so is exercised over a range of
+ * years rather than two hand-verified points.
+ *
+ * Determinism (same inputs -> identical result) is also asserted: the function
+ * is documented as a pure computation with no mutable state.
+ */
+static lcca_bool test_lcca_get_k_of_leap_month_within_range(void) {
+    lcca_bool passed = true;
+    const lcca_f64 tz = 7.0;
+    lcca_i32 year;
+
+    for (year = 2001; year <= 2024; year += 1) {
+        const lcca_i32 current = lcca_get_k_of_month_11(year, tz);
+        const lcca_i32 next = lcca_get_k_of_month_11(year + 1, tz);
+        const lcca_leap_month_result r =
+            lcca_get_k_of_leap_month(current, next, tz);
+
+        /* Determinism: a second identical call must agree. */
+        {
+            const lcca_leap_month_result r2 =
+                lcca_get_k_of_leap_month(current, next, tz);
+            if (!lcca_c_assert(r.have_leap_month == r2.have_leap_month)) {
+                passed = false;
+            }
+            if (r.have_leap_month && !lcca_c_assert(r.k == r2.k)) {
+                passed = false;
+            }
+        }
+
+        /* When a leap month exists, it must sit strictly inside the window. */
+        if (r.have_leap_month) {
+            if (!lcca_c_assert(r.k > current)) {
+                passed = false;
+            }
+            if (!lcca_c_assert(r.k < next)) {
+                passed = false;
+            }
+        }
+    }
+
+    return passed;
+}
+
+/* =========================================================================
  * Entry point
  * ========================================================================= */
 
@@ -1067,6 +1234,11 @@ int main(void) {
     RUN_TEST(test_lcca_get_k_of_month_11_metonic_cycle);
     RUN_TEST(test_lcca_get_k_of_month_11_monotonicity);
     RUN_TEST(test_lcca_get_k_of_month_11_winter_solstice_containment);
+
+    /* Execute lcca_get_k_of_leap_month test suite */
+    RUN_TEST(test_lcca_get_k_of_leap_month_no_leap_short_span);
+    RUN_TEST(test_lcca_get_k_of_leap_month_known_leap_years);
+    RUN_TEST(test_lcca_get_k_of_leap_month_within_range);
 
     printf("=== Test Suite Finished ===\n");
 

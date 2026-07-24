@@ -1,9 +1,9 @@
-#include <math.h>
+#include "lcca_mechanics.h"
 #include "lcca_calendar.h"
 #include "lcca_common.h"
 #include "lcca_math.h"
-#include "lcca_mechanics.h"
 #include "lcca_numeric.h"
+#include <math.h>
 
 lcca_f64 lcca_get_sun_true_longitude(const lcca_f64 jd_td) {
     /* T: Julian centuries from the epoch J2000.0. */
@@ -120,22 +120,22 @@ lcca_f64 lcca_approximate_k(const lcca_gregorian_date gregorian,
     (void)lcca_c_assert(lcca_is_valid_gregorian_date(gregorian));
     (void)lcca_c_assert(lcca_is_valid_time_of_day(time));
     {
-    const lcca_i32 K =
-        ((gregorian.year % 400 == 0) ||
-         ((gregorian.year % 4 == 0) && (gregorian.year % 100 != 0)))
-            ? 1
-            : 2;
-    const lcca_i32 day_of_year =
+        const lcca_i32 K =
+            ((gregorian.year % 400 == 0) ||
+             ((gregorian.year % 4 == 0) && (gregorian.year % 100 != 0)))
+                ? 1
+                : 2;
+        const lcca_i32 day_of_year =
             ((((275 * (lcca_i32)gregorian.month) / 9) /** Integer division */
               - K * (((lcca_i32)gregorian.month + 9) /
                      12)) /** Integer division */
-         + (gregorian.day - 30));
-        const lcca_f64 F =
-            ((time.hours - gregorian.time_zone) +
-                        ((time.minutes + (time.seconds / 60.0)) / 60.0) / 24.0);
-    return ((((day_of_year - 1) + F) / ((K == 1) ? 366 : 365)) +
-            (gregorian.year - 2000)) *
-           12.3685;
+             + (gregorian.day - 30));
+        const lcca_f64 F = (((time.hours - gregorian.time_zone) +
+                             ((time.minutes + (time.seconds / 60.0)) / 60.0)) /
+                            24.0);
+        return ((((day_of_year - 1) + F) / ((K == 1) ? 366 : 365)) +
+                (gregorian.year - 2000)) *
+               12.3685;
     }
 }
 

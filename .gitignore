@@ -1,6 +1,7 @@
 *.a
 *.o
 .DS_Store
+.claude
 .vscode
 bin
 build

@@ -1202,6 +1202,159 @@ static lcca_bool test_lcca_get_k_of_leap_month_within_range(void) {
 }
 
 /* =========================================================================
+ * lcca_get_new_moon_midnight_jd_ut
+ * ========================================================================= */
+
+/**
+ * @brief Tests lcca_get_new_moon_midnight_jd_ut against exact oracle values
+ * for k = 0, including a timezone-induced day shift.
+ *
+ * The function returns the JD(UT) of local midnight of the civil day into which
+ * the k-th New Moon falls. Oracles are derived from the New Moon epochs pinned
+ * in test_lcca_get_new_moon_jd_td_nominal:
+ *
+ *   k = 0: New Moon at Jan 6, 2000, 18:14 UTC.
+ *     - At UTC (tz = 0.0) the New Moon is on Jan 6, so local midnight is
+ *       Jan 6.0, 2000 = JD(UT) 2451549.5 (exact: J2000.0 epoch 2451545.0 is
+ *       Jan 1.5, so Jan 6.0 = 2451545.0 - 1.5 + 5.0 = 2451548.5 ... using the
+ *       calendar conversion, Jan 6.0 2000 midnight UT = 2451549.5).
+ *     - At UTC+7 (tz = 7.0) the same instant is Jan 7, 01:14 local, so local
+ *       midnight is Jan 7.0 local = JD(UT) 2451549.5 + 1 - 7/24 = 2451550.208.
+ *
+ * The midnight-JD is the product of exact floor-based calendar arithmetic, not
+ * a truncated astronomical series, so a tight epsilon is appropriate. The
+ * shared TEST_NEW_MOON_JD_EPSILON (0.001 day) is reused for consistency with
+ * the sibling New Moon tests; the true error here is far smaller.
+ *
+ * @todo Confirm both oracle midnight values against the TypeScript reference
+ *       implementation once available.
+ */
+static lcca_bool test_lcca_get_new_moon_midnight_jd_ut_nominal(void) {
+    lcca_bool passed = true;
+    lcca_f64 result;
+
+    /* k = 0 at UTC: New Moon Jan 6, 2000 -> local midnight Jan 6.0 UT. */
+    result = lcca_get_new_moon_midnight_jd_ut(0, 0.0);
+    if (!lcca_c_assert(IS_EQUAL_NEW_MOON_JD(result, 2451549.5))) {
+        passed = false;
+    }
+
+    /* k = 0 at UTC+7: New Moon is Jan 7 local (01:14), midnight Jan 7.0 local
+     * = 2451549.5 + 1 - 7/24 = 2451550.208333. */
+    result = lcca_get_new_moon_midnight_jd_ut(0, 7.0);
+    if (!lcca_c_assert(IS_EQUAL_NEW_MOON_JD(result, 2451550.208333))) {
+        passed = false;
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that the returned JD always denotes an exact local midnight.
+ *
+ * A JD(UT) representing midnight at timezone offset tz satisfies
+ * frac(jd + tz/24) == 0.5, because a Julian Day boundary falls at noon: local
+ * midnight is half a day before or after a whole JD. Equivalently, the value
+ * must reduce to a "...0.5 minus tz/24" fractional part. This is the defining
+ * post-condition of the function ("...the midnight of the day...") and holds
+ * exactly, independent of any astronomical accuracy, so a tight tolerance
+ * (1e-6 day ~ 0.09 s) is used.
+ *
+ * The property is checked across a range of lunation numbers spanning the
+ * J2000 epoch (negative through positive k) and three distinct timezones,
+ * including a fractional offset (UTC+5:30). A bug that returned the raw New
+ * Moon instant, or that failed to zero the time-of-day, would fail here.
+ */
+static lcca_bool test_lcca_get_new_moon_midnight_jd_ut_is_local_midnight(void) {
+    lcca_bool passed = true;
+    const lcca_f64 zones[] = {0.0, 7.0, 5.5};
+    lcca_i32 zi;
+    const lcca_f64 midnight_epsilon = 1e-6;
+
+    for (zi = 0; zi < 3; zi += 1) {
+        const lcca_f64 tz = zones[zi];
+        lcca_i32 k;
+        for (k = -50; k <= 50; k += 10) {
+            const lcca_f64 mid = lcca_get_new_moon_midnight_jd_ut(k, tz);
+            /* frac(mid + tz/24), normalised into [0, 1). */
+            lcca_f64 f = fmod(mid + (tz / 24.0), 1.0);
+            if (f < 0.0) {
+                f += 1.0;
+            }
+            if (!lcca_c_assert(fabs(f - 0.5) < midnight_epsilon)) {
+                passed = false;
+            }
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that the actual New Moon instant falls within the civil day
+ * whose midnight is returned.
+ *
+ * The returned value is the local midnight *beginning* the day that contains
+ * the New Moon, so the New Moon's own JD(UT) must lie in the half-open interval
+ * [midnight, midnight + 1 day). This cross-checks lcca_get_new_moon_midnight_jd_ut
+ * against lcca_get_new_moon_jd_td (converted TD -> UT the same way the function
+ * does internally): an off-by-one-day error in the civil-date extraction would
+ * push the offset to ~-1 or ~+1, far outside [0, 1).
+ *
+ * Checked over k = -100..100 at UTC+7. Both endpoints are asserted so that a
+ * New Moon landing exactly on a midnight boundary (offset 0) passes while a
+ * full-day slip fails.
+ */
+static lcca_bool test_lcca_get_new_moon_midnight_jd_ut_contains_new_moon(void) {
+    lcca_bool passed = true;
+    const lcca_f64 tz = 7.0;
+    lcca_i32 k;
+
+    for (k = -100; k <= 100; k += 25) {
+        const lcca_f64 mid = lcca_get_new_moon_midnight_jd_ut(k, tz);
+        const lcca_f64 nm_td = lcca_get_new_moon_jd_td(k);
+        const lcca_f64 nm_ut =
+            nm_td - (lcca_get_delta_t_seconds_td(nm_td) / 86400.0);
+        const lcca_f64 offset = nm_ut - mid;
+
+        if (!lcca_c_assert(offset >= 0.0)) {
+            passed = false;
+        }
+        if (!lcca_c_assert(offset < 1.0)) {
+            passed = false;
+        }
+    }
+
+    return passed;
+}
+
+/**
+ * @brief Tests that the returned midnight JD is strictly increasing in k.
+ *
+ * Successive New Moons are ~29.53 days apart, always more than one day, so the
+ * civil day (and hence its midnight JD) must advance with every increment of k.
+ * A sign error in the underlying New Moon formula, or a broken civil-date
+ * extraction, would collapse or invert this ordering. Checked over a
+ * contiguous span crossing the J2000 epoch at UTC+7.
+ */
+static lcca_bool test_lcca_get_new_moon_midnight_jd_ut_monotonicity(void) {
+    lcca_bool passed = true;
+    const lcca_f64 tz = 7.0;
+    lcca_i32 k;
+    lcca_f64 prev = lcca_get_new_moon_midnight_jd_ut(-10, tz);
+
+    for (k = -9; k <= 10; k += 1) {
+        const lcca_f64 mid = lcca_get_new_moon_midnight_jd_ut(k, tz);
+        if (!lcca_c_assert(mid > prev)) {
+            passed = false;
+        }
+        prev = mid;
+    }
+
+    return passed;
+}
+
+/* =========================================================================
  * Entry point
  * ========================================================================= */
 
@@ -1239,6 +1392,12 @@ int main(void) {
     RUN_TEST(test_lcca_get_k_of_leap_month_no_leap_short_span);
     RUN_TEST(test_lcca_get_k_of_leap_month_known_leap_years);
     RUN_TEST(test_lcca_get_k_of_leap_month_within_range);
+
+    /* Execute lcca_get_new_moon_midnight_jd_ut test suite */
+    RUN_TEST(test_lcca_get_new_moon_midnight_jd_ut_nominal);
+    RUN_TEST(test_lcca_get_new_moon_midnight_jd_ut_is_local_midnight);
+    RUN_TEST(test_lcca_get_new_moon_midnight_jd_ut_contains_new_moon);
+    RUN_TEST(test_lcca_get_new_moon_midnight_jd_ut_monotonicity);
 
     printf("=== Test Suite Finished ===\n");
 

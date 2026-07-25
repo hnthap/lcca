@@ -29,7 +29,7 @@
 - [x] Add Chinese and Vietnamese representations for PowerShell, write tests for them, and support module installation.
 - [x] Write file-level documentations.
 - [ ] Double-check function-level documentations against actual implementation.
-- [ ] Write README and LICENSE.
+- [x] Write README and LICENSE.
 - [ ] Update `make help`.
 - [ ] Resolve all remaining `@todo`s in the unit tests.
 - [ ] Create a reusable template for a C project from this project.

@@ -31,7 +31,7 @@
 - [x] Double-check function-level documentations against actual implementation.
 - [x] Write README and LICENSE.
 - [ ] Speed up `Import-Module Lunar`: it currently compiles the P/Invoke C# via `Add-Type -TypeDefinition` on every import, costing ~640–1185ms per fresh session (dominates PowerShell profile startup). Ship a precompiled interop assembly (`Lunar.Interop.dll`, built once via a `.csproj`/`dotnet build` or `Add-Type -OutputAssembly` at package time) and load it with `Add-Type -Path` instead. Requires a build step for the managed DLL, shipping it as a third file, and updating `Install-LunarModule.ps1`, the README, and tests to match. Keeps struct layout byte-compatible with `lcca_calendar.h`.
-- [ ] Update `make help`.
+- [x] Update `make help`.
 - [ ] Resolve all remaining `@todo`s in the unit tests.
 - [ ] Create a reusable template for a C project from this project.
 - [ ] Improve Doxyfile.

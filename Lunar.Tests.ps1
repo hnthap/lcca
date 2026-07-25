@@ -106,7 +106,7 @@ Describe "Lunar Module Date Formatting" {
 }
 
 Describe "Module Dependencies and API Structs" {
-    
+
     It "successfully loaded the lcca_lunar_date struct into the session" {
         $structType = [lcca_lunar_date] -as [type]
         $structType | Should -Not -BeNullOrEmpty
@@ -115,5 +115,25 @@ Describe "Module Dependencies and API Structs" {
     It "successfully loaded the LunarAPI class into the session" {
         $apiType = [LunarAPI] -as [type]
         $apiType | Should -Not -BeNullOrEmpty
+    }
+}
+
+Describe "Native liblcca.dll Interop" {
+
+    It "converts a known Gregorian date to the correct lunar date" {
+        # 2024-07-19 in +07:00 -> lunar day 14, month 6, not leap, 29-day month.
+        # Exercises the native P/Invoke path (fails without a working DLL resolver on .NET Core).
+        $lunar = Get-LunarDate -Date '2024-07-19'
+        $lunar | Should -Not -BeNullOrEmpty
+        $lunar.Year | Should -Be 2024
+        $lunar.Month | Should -Be 6
+        $lunar.Day | Should -Be 14
+        $lunar.Leap | Should -Be 0
+        $lunar.MonthSize | Should -Be 29
+    }
+
+    It "renders the known date correctly in Chinese" {
+        $lunar = Get-LunarDate -Date '2024-07-19'
+        Get-LunarDateRepresentation -Lunar $lunar -Language "Chinese" | Should -Be "甲辰年六月（小）十四日"
     }
 }

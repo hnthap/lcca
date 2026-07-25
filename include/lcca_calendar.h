@@ -104,10 +104,15 @@ extern "C" {
  */
 typedef struct lcca_lunar_date {
     lcca_f64 time_zone; /**< Time zone offset in hours (e.g. +07:00 is 7.0) */
-    lcca_i32 k;         /**< Lunation number (k), */
-                        /**< starting from January 6th, 2000 */
-    lcca_i32 year;      /**< Approximate Gregorian year of the lunar date */
-    lcca_i8 month;      /**< Lunar month, from 1 to 12 */
+    lcca_i32 k;         /**< Lunation number (k), with k = 0 corresponding */
+                        /**< approximately to the New Moon of 6 January 2000 */
+    lcca_i32 year;      /**< Lunar year, in Gregorian year numbering; it is */
+                        /**< the Gregorian year in which the lunar year's */
+                        /**< Month 1 begins, so it may differ from the */
+                        /**< Gregorian year of the same day */
+    lcca_i8 month;      /**< Lunar month, from 1 to 12; a leap month repeats */
+                        /**< the number of the month it follows and is */
+                        /**< distinguished by the `leap` flag */
     lcca_i8 month_size; /**< Lunar month's number of days (29 or 30) */
     lcca_i8 day;        /**< Day of month, from 1 to 30 */
     lcca_bool leap;     /**< True if the date is in a leap month */
@@ -118,8 +123,8 @@ typedef struct lcca_lunar_date {
  */
 typedef struct lcca_gregorian_date {
     lcca_f64 time_zone; /**< Time zone offset in hours (e.g. +07:00 is 7.0) */
-    lcca_i32 year;      /**< Gregorian year */
-                        /**< (e.g. AD 2000 is 2000, 1 BC is 0, 2 BC is 1) */
+    lcca_i32 year;      /**< Gregorian year, in astronomical year numbering */
+                        /**< (e.g. AD 2000 is 2000, 1 BC is 0, 2 BC is -1) */
     lcca_i8 month;      /**< Gregorian month, */
                         /**< from 1 (January) to 12 (December) */
     lcca_i8 day;        /**< Day of month, from 1 to 31 */
@@ -178,14 +183,19 @@ lcca_bool lcca_is_valid_time_of_day(const lcca_time time);
  *
  * @param[in] gregorian A date in the Gregorian calendar
  *
- * @returns 1 if the Gregorian date is valid, otherwise, 0.
+ * @returns true if the Gregorian date is valid, otherwise false.
  */
 lcca_bool lcca_is_valid_gregorian_date(const lcca_gregorian_date gregorian);
 
 /**
  * @brief Gets the number of days in the specified month of a year.
  *
- * @pre The year and month of the input Gregorian date shall be valid.
+ * Only the year and month fields of the input are read; the day and time zone
+ * fields are ignored. Every year value is accepted, February's length being
+ * determined by the Gregorian leap-year rule applied to astronomical year
+ * numbering.
+ *
+ * @pre The month of the input Gregorian date shall be in the range 1 to 12.
  *
  * @post This function has no side effects, but it also inherits the side
  * effects of lcca_c_assert() (if any) in case of precondition violation.
@@ -204,12 +214,19 @@ lcca_i8 lcca_get_gregorian_month_size(const lcca_gregorian_date gregorian);
  * See more: Chapter 7 of
  * Astronomical Algorithms (Jean Meeus, 1991).
  *
+ * The time zone offset carried by @p gregorian is subtracted from the time of
+ * day, so the result is a JD in UT rather than in local time.
+ *
  * @pre The input Gregorian date is valid.
  *
- * @post This function has no side effects, but it also inherits the side
- * effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @pre The input time of day is valid.
  *
- * @param[in] gregorian The Gregorian date with time of day
+ * @post This function has no side effects. It performs no assertion of its own;
+ * a precondition violation yields an unspecified JD.
+ *
+ * @param[in] gregorian The Gregorian date, whose time zone offset is applied
+ *
+ * @param[in] time The time of day, interpreted in that time zone
  *
  * @returns The equivalent JD (UT)
  */
@@ -225,12 +242,16 @@ lcca_f64 lcca_convert_gregorian_to_jd_ut(const lcca_gregorian_date gregorian,
  *
  * @pre The input JD is positive.
  *
- * @post This function has no side effects, but it also inherits the side
- * effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @pre The time zone offset shall be valid (greater than -24 and less than 24).
+ *
+ * @post This function has no side effects. It performs no assertion of its own;
+ * a precondition violation yields an unspecified Gregorian date.
  *
  * @param[in] jd_ut Positive JD
  *
- * @returns The Gregorian date
+ * @param[in] time_zone Time zone offset in hours, copied into the result
+ *
+ * @returns The Gregorian date, with its time zone field set to @p time_zone
  */
 lcca_gregorian_date lcca_convert_jd_ut_to_gregorian(const lcca_f64 jd_ut,
                                                     const lcca_f64 time_zone);
@@ -244,10 +265,14 @@ lcca_gregorian_date lcca_convert_jd_ut_to_gregorian(const lcca_f64 jd_ut,
  *
  * @pre The input JD is positive.
  *
- * @post This function has no side effects, but it also inherits the side
- * effects of lcca_c_assert() (if any) in case of precondition violation.
+ * @pre The time zone offset shall be valid (greater than -24 and less than 24).
+ *
+ * @post This function has no side effects. It performs no assertion of its own;
+ * a precondition violation yields an unspecified time of day.
  *
  * @param[in] jd_ut Positive JD
+ *
+ * @param[in] time_zone Time zone offset in hours
  *
  * @returns The time of day
  */
@@ -265,7 +290,7 @@ lcca_time lcca_convert_jd_ut_to_time_of_day(const lcca_f64 jd_ut,
  *
  * @param[in] jd_ut JD (UT)
  *
- * @returns Delta T
+ * @returns Delta T (TD - UT) in seconds
  */
 lcca_f64 lcca_get_delta_t_seconds(const lcca_f64 jd_ut);
 
@@ -278,14 +303,23 @@ lcca_f64 lcca_get_delta_t_seconds(const lcca_f64 jd_ut);
  *
  * @post This function has no side effects.
  *
+ * The argument is a JD in TD, whereas the underlying estimate is parameterized
+ * by JD in UT; the corresponding UT instant is therefore recovered by fixed-
+ * point iteration before the estimate is evaluated.
+ *
  * @param[in] jd_td JD (TD)
  *
- * @returns Delta T
+ * @returns Delta T (TD - UT) in seconds
  */
 lcca_f64 lcca_get_delta_t_seconds_td(const lcca_f64 jd_td);
 
 /**
  * @brief Converts a date in the Gregorian calendar to lunar calendar.
+ *
+ * The conversion is performed for the civil day denoted by @p gregorian; any
+ * time of day is disregarded, midnight in the date's own time zone being used
+ * throughout. The time zone offset of @p gregorian is copied to the result, and
+ * all of the result's fields (k, year, month, month_size, day, leap) are set.
  *
  * @pre The input Gregorian date shall be valid.
  *
@@ -302,14 +336,24 @@ lcca_convert_gregorian_to_lunar(const lcca_gregorian_date gregorian);
 /**
  * @brief Converts a date in the lunar calendar to Gregorian calendar.
  *
+ * The month begun by lunation @p lunar.k is located, and @p lunar.day counted
+ * from its first day. Only the `k`, `day`, and `time_zone` fields are read; the
+ * `year`, `month`, `month_size`, and `leap` fields are not consulted, since `k`
+ * already identifies the month unambiguously. A lunar date whose `k` disagrees
+ * with its `month`, `year`, and `leap` fields therefore converts according to
+ * `k`.
+ *
  * @pre The input lunar date shall be valid.
  *
  * @post This function has no side effects, but it also inherits the side
- * effects of lcca_c_assert() (if any) in case of precondition violation.
+ * effects of lcca_c_assert() (if any) in case of precondition violation. The
+ * asserted checks cover only the basic bounds on `month`, `month_size`, and
+ * `day` described in the note below.
  *
  * @param[in] lunar The lunar date
  *
- * @returns The equivalent Gregorian date
+ * @returns The equivalent Gregorian date, with its time zone field set to
+ * @p lunar.time_zone
  *
  * @note The only sane way to validate a lunar date as we know is to convert it
  * to Gregorian, then convert it back to lunar, and then compare the new lunar

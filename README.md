@@ -132,6 +132,14 @@ Get-LunarDateRepresentation -Language Vietnamese   # for today
 Get-LunarDateRepresentation -Language Chinese -Lunar (Get-LunarDate -Date '2025-08-11')
 ```
 
+The module works on both Windows PowerShell 5.1 and PowerShell 7+ (`pwsh`). On
+PowerShell 7 (.NET Core), the `LunarAPI` type is compiled into an in-memory
+assembly with no on-disk location, so the default P/Invoke probing cannot find
+`liblcca.dll` on its own; the module registers a `DllImportResolver` that loads
+the DLL from the module folder (or a `build/` subfolder when run from source).
+This means `liblcca.dll` must sit next to `Lunar.psm1` — which is exactly what
+`Install-LunarModule.ps1` arranges.
+
 > **Note:** the C# struct layout in `Lunar.psm1` must stay byte-compatible with
 > the C structs in `lcca_calendar.h`. If you change a struct, update the
 > P/Invoke definition to match.

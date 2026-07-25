@@ -27,16 +27,52 @@ if (-not ("LunarAPI" -as [type])) {
 
         public static lcca_lunar_date GetLunar(double tz, int year, int month, int day) {
             lcca_gregorian_date gDate = new lcca_gregorian_date();
-            
+
             gDate.TimeZone = tz;
             gDate.Year = year;
             gDate.Month = (sbyte)month;
             gDate.Day = (sbyte)day;
-            
+
             return lcca_convert_gregorian_to_lunar(gDate);
+        }
+
+        // On .NET Core (PowerShell 7+), this type lives in an in-memory
+        // assembly with no on-disk Location, so the default P/Invoke probing
+        // resolves liblcca.dll against a null base path and throws
+        // "Value cannot be null. (Parameter 'path1')". Registering an explicit
+        // resolver that loads the DLL from a caller-supplied directory (the
+        // module folder) fixes native-library discovery. On .NET Framework
+        // (Windows PowerShell 5.1) NativeLibrary is unavailable, so callers
+        // fall back to the current directory / PATH as before.
+        public static void RegisterDllResolver(string directory) {
+            // Installed layout: liblcca.dll sits next to the module. In-repo
+            // layout (running from source, e.g. tests): it lives under build/.
+            string[] candidates = {
+                System.IO.Path.Combine(directory, "liblcca.dll"),
+                System.IO.Path.Combine(directory, "build", "liblcca.dll")
+            };
+            NativeLibrary.SetDllImportResolver(
+                typeof(LunarAPI).Assembly,
+                (libraryName, assembly, searchPath) => {
+                    if (libraryName == "liblcca.dll") {
+                        foreach (string candidate in candidates) {
+                            if (System.IO.File.Exists(candidate)) {
+                                return NativeLibrary.Load(candidate);
+                            }
+                        }
+                    }
+                    return IntPtr.Zero;
+                });
         }
     }
 "@
+}
+
+# Point native P/Invoke at the liblcca.dll that ships alongside this module.
+# NativeLibrary only exists on .NET Core (PowerShell 6+); on Windows PowerShell
+# 5.1 the original current-directory / PATH resolution is used instead.
+if ("System.Runtime.InteropServices.NativeLibrary" -as [type]) {
+    [LunarAPI]::RegisterDllResolver($PSScriptRoot)
 }
 
 function Get-LunarDate {

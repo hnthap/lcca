@@ -18,7 +18,7 @@ CTEST_CMD := ctest
 BUILD_TYPE ?= Debug
 DEV_MODE   ?= ON
 
-.PHONY: all build test clean release dev help docs clean_docs
+.PHONY: all configure build test clean release dev help docs clean_docs
 
 # Default Target
 all: build
@@ -73,11 +73,15 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  make dev      : (Default) Rebuild in Debug mode (Sanitizers + Strict Warnings)"
-	@echo "  make release  : Rebuild in Release mode (Optimized)"
-	@echo "  make build    : Build the current configuration without cleaning"
-	@echo "  make test     : Run the test suite"
-	@echo "  make clean    : Remove build artifacts"
+	@echo "  make            : (Default) Same as 'make build'"
+	@echo "  make dev        : Clean rebuild in Debug mode (Sanitizers + Strict Warnings)"
+	@echo "  make release    : Clean rebuild in Release mode (Optimized, -O3)"
+	@echo "  make configure  : Configure the build directory with CMake"
+	@echo "  make build      : Build the current configuration without cleaning"
+	@echo "  make test       : Build, then run the test suite (--output-on-failure)"
+	@echo "  make clean      : Remove build/ and the copied compile_commands.json"
+	@echo "  make docs       : Generate Doxygen HTML into $(DOC_DIR)/html/index.html"
+	@echo "  make clean_docs : Remove the generated documentation"
 
 # --- Documentation settings ---
 DOXYFILE := Doxyfile

@@ -2,7 +2,6 @@
 #include "lcca_common.h"
 #include "lcca_mechanics.h"
 #include "lcca_numeric.h"
-#include <float.h>
 #include <math.h>
 
 lcca_time lcca_new_midnight_time(void) {

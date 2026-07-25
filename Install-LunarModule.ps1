@@ -40,4 +40,6 @@ Copy-Item -Path $promptedDll -Destination (Join-Path $targetDirectory "liblcca.d
 Write-Host ""
 Write-Host "Installation Complete! ✅" -ForegroundColor Green
 Write-Host "Files safely installed to: $targetDirectory"
+Write-Host "liblcca.dll is placed next to Lunar.psm1 so the module can locate it on both Windows PowerShell 5.1 and PowerShell 7+ (pwsh)." -ForegroundColor Gray
+Write-Host "Note: this installs into the current edition's module path. Run this script under each PowerShell edition you want the module available in." -ForegroundColor Gray
 Write-Host "Please close this window and start a new PowerShell session so the module can be discovered." -ForegroundColor Yellow

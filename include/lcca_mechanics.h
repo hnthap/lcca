@@ -107,8 +107,9 @@ extern "C" {
  */
 typedef struct lcca_leap_month_result {
     lcca_bool have_leap_month; /**< Whether a leap month exists */
-    lcca_i32 k;                /**< Lunation number (k) of the leap month
-                                    if exists, undefined otherwise */
+    lcca_i32 k;                /**< Lunation number (k) of the leap month if
+                                    one exists; unspecified otherwise, and not
+                                    to be read unless have_leap_month is true */
 } lcca_leap_month_result;
 
 /**
@@ -135,34 +136,49 @@ lcca_f64 lcca_get_sun_true_longitude(const lcca_f64 jd_td);
  *
  * @post This function has no side effects.
  *
- * @param[in] k Lunation number (k=0 is roughly about AD 2000); it represents
- *              a New Moon as an integer.
+ * @param[in] k Lunation number; k = 0 corresponds approximately to the New Moon
+ *              of 6 January 2000, and successive New Moons to successive
+ *              integers, negative values denoting New Moons before that epoch.
  *
  * @returns The exact JD in Dynamic Time of the k-th New Moon.
  */
 lcca_f64 lcca_get_new_moon_jd_td(const lcca_i32 k);
 
 /**
- * @brief   Approximates the lunation number (k) given the provided *decimal*
- *          year.
+ * @brief   Approximates the lunation number (k) of the given moment.
+ *
+ * The moment is first reduced to a *decimal* year, the fractional part of which
+ * is the elapsed fraction of the Gregorian year; that decimal year, measured
+ * from 2000, is then scaled by the mean number of lunations per year (12.3685).
+ *
+ * The result is a real number, not an integer: it approximates the position of
+ * the moment within the sequence of New Moons, and callers wanting a lunation
+ * number round it to the nearest integer.
  *
  * @pre The input Gregorian date is valid.
+ *
+ * @pre The input time of day is valid.
  *
  * @post This function has no side effects, but it also inherits the side
  * effects of lcca_c_assert() (if any) in case of precondition violation.
  *
- * @param[in] gregorian The Gregorian date with time zone
+ * @param[in] gregorian The Gregorian date, whose time zone offset is applied
  *
- * @param[in] time The time of the day
+ * @param[in] time The time of the day, interpreted in that time zone
  *
- * @returns The approximated lunation number (k)
+ * @returns The approximated lunation number (k), as a real number
  */
 lcca_f64 lcca_approximate_k(const lcca_gregorian_date gregorian,
                             const lcca_time time);
 
 /**
- * @brief Calculates the JD (TD) of the Winter Solstice of given Gregorian year
- * and time zone.
+ * @brief Calculates the JD (TD) of the Winter Solstice of a given Gregorian
+ * year.
+ *
+ * The solstice is located by bisecting the interval from 1 December of @p year
+ * to 35 days later, for the instant at which the Sun's true longitude reaches
+ * 270 degrees. The result is an absolute instant, independent of any time zone;
+ * mapping it to a civil date is the caller's responsibility.
  *
  * @post This function has no side effects.
  *
@@ -210,8 +226,12 @@ lcca_i32 lcca_get_k_of_month_11(const lcca_i32 year, const lcca_f64 time_zone);
  *
  * @param[in] time_zone Time zone offset in hours
  *
- * @returns k of the first month without a Principal Solar Term in the lunar
- * year from Month 11 to before the next Month 11.
+ * @returns A result whose `have_leap_month` is true and whose `k` is that of
+ * the first month without a Principal Solar Term, if such a month exists;
+ * otherwise a result whose `have_leap_month` is false and whose `k` is
+ * unspecified. No leap month exists when the two Month 11 boundaries are 12 or
+ * fewer lunations apart, that is, when the lunar year is a common one of 12
+ * months.
  */
 lcca_leap_month_result
 lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
@@ -221,6 +241,10 @@ lcca_get_k_of_leap_month(const lcca_i32 current_year_month_11_k,
 /**
  * @brief Calculate the JD (UT) of the midnight of the day which New Moon falls
  * into.
+ *
+ * The day in question is the civil day of the given time zone, and the returned
+ * midnight is that day's start in the same time zone, expressed as a JD in UT.
+ * This is the instant at which the corresponding lunar month begins.
  *
  * @pre Time zone shall be valid. Regarding timezone offset validation, consult
  * the file-level documentation of `lcca_calendar.h`.

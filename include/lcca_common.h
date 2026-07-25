@@ -64,7 +64,6 @@
 #include "lcca_numeric.h"
 #include <stdio.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -81,7 +80,8 @@ extern "C" {
  *
  * @param[in] expr The stringified expression that evaluated to false.
  *
- * @returns (Does not return)
+ * @post Program execution is not aborted; the function returns normally after
+ * emitting the diagnostic.
  */
 static inline void lcca_tst_debugging(const char *file, lcca_i32 line,
                                       const char *expr) {

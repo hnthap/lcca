@@ -52,7 +52,6 @@
 #include "lcca_numeric.h"
 #include <math.h>
 
-
 #define LCCA_PI (3.14159265358979323846)
 
 #ifdef __cplusplus
@@ -62,11 +61,18 @@ extern "C" {
 /**
  * @brief Normalizes degrees in the range from 0 (inclusive) to 360 (exclusive).
  *
+ * Angles differing by whole turns normalize to the same representative, so
+ * -30, 330, and 690 all yield 330.
+ *
+ * @pre The input is finite. A NaN or infinite input yields NaN, that being the
+ * behaviour of the underlying `fmod()`.
+ *
  * @post This function has no side effects.
  *
  * @param[in] degrees Degrees
  *
- * @returns Normalized degrees
+ * @returns Normalized degrees, in the range from 0 (inclusive) to 360
+ * (exclusive)
  */
 static inline lcca_f64 lcca_normalize_degrees(lcca_f64 degrees) {
     return fmod(fmod(degrees, 360.0) + 360.0, 360.0);
@@ -75,11 +81,14 @@ static inline lcca_f64 lcca_normalize_degrees(lcca_f64 degrees) {
 /**
  * @brief Calculates the sine of specified degrees.
  *
+ * The argument need not be normalized; large magnitudes are accepted, though
+ * they lose precision through argument reduction, as with `sin()` itself.
+ *
  * @post This function has no side effects.
  *
  * @param[in] degrees Degrees
  *
- * @returns Sine of the degrees
+ * @returns Sine of the degrees, in the range -1 to 1
  */
 static inline lcca_f64 lcca_sin_degrees(lcca_f64 degrees) {
     return sin(degrees * LCCA_PI / 180.0);
